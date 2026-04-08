@@ -1,14 +1,38 @@
-const DEFAULT_BASE_URL = 'https://talentland-toka.eastus2.cloudapp.azure.com';
+const TOKA_APP_ID = process.env.TOKA_APP_ID;
+const TOKA_MERCHANT_CODE = process.env.TOKA_MERCHANT_CODE;
+const TOKA_API_BASE_URL = process.env.TOKA_API_BASE_URL;
 
-function getConfig() {
-  const baseUrl = process.env.TOKA_API_BASE_URL || DEFAULT_BASE_URL;
-  const appId = process.env.TOKA_APP_ID || '3500020265490631';
-  const merchantCode = process.env.TOKA_MERCHANT_CODE || '';
+function validateConfig() {
+  const errors = [];
+
+  if (!TOKA_APP_ID) {
+    errors.push('TOKA_APP_ID is required.');
+  } else if (TOKA_APP_ID.length !== 16) {
+    errors.push('TOKA_APP_ID must contain exactly 16 characters.');
+  }
+
+  if (!TOKA_MERCHANT_CODE) {
+    errors.push('TOKA_MERCHANT_CODE is required.');
+  }
+
+  if (!TOKA_API_BASE_URL) {
+    errors.push('TOKA_API_BASE_URL is required.');
+  }
 
   return {
-    baseUrl: baseUrl.replace(/\/$/, ''),
-    appId,
-    merchantCode,
+    isValid: errors.length === 0,
+    errors,
+  };
+}
+
+function getConfig() {
+  const validation = validateConfig();
+
+  return {
+    baseUrl: (TOKA_API_BASE_URL || '').replace(/\/$/, ''),
+    appId: TOKA_APP_ID || '',
+    merchantCode: TOKA_MERCHANT_CODE || '',
+    validation,
   };
 }
 
@@ -60,5 +84,6 @@ async function request(path, { method = 'POST', body, accessToken, merchantCode 
 
 module.exports = {
   getConfig,
+  validateConfig,
   request,
 };

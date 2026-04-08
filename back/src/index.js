@@ -29,12 +29,14 @@ function validatePaymentAmount(amount) {
 function validateBaseRequest(req, res, next) {
   const config = getConfig();
 
-  if (!config.appId || config.appId.length !== 16) {
+  if (!config.validation.isValid) {
     return res.status(500).json({
       success: false,
       statusCode: 500,
-      message: 'TOKA_APP_ID must be configured with exactly 16 characters.',
-      data: {},
+      message: 'Backend TOKA configuration is invalid.',
+      data: {
+        errors: config.validation.errors,
+      },
     });
   }
 
@@ -56,13 +58,16 @@ app.get('/health', (_req, res) => {
 app.get('/api/config', (_req, res) => {
   const config = getConfig();
   res.json({
-    success: true,
-    statusCode: 200,
-    message: 'Configuration loaded.',
+    success: config.validation.isValid,
+    statusCode: config.validation.isValid ? 200 : 500,
+    message: config.validation.isValid
+      ? 'Configuration loaded.'
+      : 'Backend TOKA configuration is invalid.',
     data: {
       appId: config.appId,
       hasMerchantCode: Boolean(config.merchantCode),
       tokaApiBaseUrl: config.baseUrl,
+      errors: config.validation.errors,
     },
   });
 });
