@@ -13,6 +13,86 @@
   margin: 0 auto;
 }
 
+.permissions-layout {
+  width: min(980px, 100%);
+  margin: 0 auto;
+  display: grid;
+  gap: 18px;
+}
+
+.permission-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: center;
+  padding: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.03);
+  margin: 14px 0;
+}
+
+.permission-help {
+  margin: 6px 0 0;
+  font-size: 0.92rem;
+}
+
+.permission-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.permission-ok,
+.permission-pending {
+  padding: 7px 10px;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.permission-ok {
+  background: rgba(90, 201, 121, 0.2);
+  color: #b7ffd2;
+  border: 1px solid rgba(90, 201, 121, 0.45);
+}
+
+.permission-pending {
+  background: rgba(255, 172, 93, 0.16);
+  color: #ffd8aa;
+  border: 1px solid rgba(255, 172, 93, 0.38);
+}
+
+.terms-box {
+  margin-top: 14px;
+  padding: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.terms-legend {
+  margin: 0 0 8px;
+  font-weight: 700;
+  color: #f1b55f;
+}
+
+.terms-check {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-top: 12px;
+}
+
+.error-banner {
+  margin-top: 14px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 91, 91, 0.42);
+  background: rgba(255, 91, 91, 0.14);
+  color: #ffd2d2;
+}
+
 .top-bar {
   display: flex;
   justify-content: space-between;
@@ -225,6 +305,7 @@ button.secondary {
   .log-panel,
   .two-column-layout,
   .feed-list,
+  .permissions-layout,
   .form-grid {
     grid-template-columns: 1fr;
   }
@@ -249,5 +330,11 @@ button.secondary {
   button,
   .view-tabs button {
     width: 100%;
+  }
+
+  .permission-item,
+  .permission-actions {
+    flex-direction: column;
+    align-items: flex-start;
   }
 }

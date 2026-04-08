@@ -90,7 +90,7 @@ function formatErrorDetail(error, fallbackText) {
 function App() {
   const [backendConfig, setBackendConfig] = useState(null);
   const [activeView, setActiveView] = useState('challenge');
-  const [modalOpen, setModalOpen] = useState(true);
+  const [modalOpen, setModalOpen] = useState(false);
   const [loadingAction, setLoadingAction] = useState('');
   const [message, setMessage] = useState({
     title: 'Base lista',
@@ -116,6 +116,10 @@ function App() {
     selectedChallengeId: DAILY_CHALLENGES[0].id,
     challengeAccepted: false,
   });
+  const [digitalIdentityAuthorized, setDigitalIdentityAuthorized] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [permissionsGatePassed, setPermissionsGatePassed] = useState(false);
+  const [permissionsError, setPermissionsError] = useState('');
 
   useEffect(() => {
     const savedSession = safeParse(window.localStorage.getItem(SESSION_KEY), null);
@@ -126,6 +130,11 @@ function App() {
       setUserInfo(savedSession.userInfo || null);
       setPaymentForm((current) => ({ ...current, ...savedSession.paymentForm }));
       setWalletState((current) => ({ ...current, ...savedSession.walletState }));
+
+      if (savedSession.accessToken && savedSession.userId) {
+        setDigitalIdentityAuthorized(true);
+        setPermissionsGatePassed(true);
+      }
     }
 
     getBackendConfig()
@@ -160,6 +169,7 @@ function App() {
 
   async function handleAuthorizeAccess() {
     setLoadingAction('authorize');
+    setPermissionsError('');
     try {
       if (!isAlipayWebView()) {
         throw new Error('Esta función solo está disponible dentro de la SuperApp de Toka/Alipay.');
@@ -173,7 +183,7 @@ function App() {
         'Se abrirá el popup de Data Usage Authorization para DigitalIdentity.'
       );
       
-      const result = await requestAuthCode('DigitalIdentity', authorizationMsg);
+      const result = await requestAuthCode('DigitalIdentity', authorizationMsg, true);
       const code = extractAuthCode(result);
       
       if (!code) {
@@ -191,16 +201,42 @@ function App() {
       setAuthCode(code);
       setAccessToken(token);
       setUserId(nextUserId);
+      setDigitalIdentityAuthorized(true);
       setModalOpen(false);
       pushActivity('Sesión iniciada', 'Te has autenticado correctamente con tu cuenta Alipay.');
     } catch (error) {
+      const detail = formatErrorDetail(error, 'No se pudo obtener el código de autorización del puente Alipay.');
+      setPermissionsError(detail);
       pushActivity(
         'Error al autorizar',
-        formatErrorDetail(error, 'No se pudo obtener el código de autorización del puente Alipay.')
+        detail
       );
     } finally {
       setLoadingAction('');
     }
+  }
+
+  function handleContinueFromPermissions() {
+    const missing = [];
+
+    if (!digitalIdentityAuthorized) {
+      missing.push('Debes autorizar DigitalIdentity.');
+    }
+
+    if (!termsAccepted) {
+      missing.push('Debes aceptar términos y condiciones.');
+    }
+
+    if (missing.length > 0) {
+      const detail = missing.join(' ');
+      setPermissionsError(detail);
+      pushActivity('Permisos incompletos', detail);
+      return;
+    }
+
+    setPermissionsError('');
+    setPermissionsGatePassed(true);
+    pushActivity('Permisos verificados', 'Ya puedes continuar al contenido principal.');
   }
 
   function handleChallengeChange() {
@@ -217,7 +253,7 @@ function App() {
   function handleChallengeAccept() {
     const selectedChallenge = DAILY_CHALLENGES.find((item) => item.id === walletState.selectedChallengeId);
     if (!accessToken) {
-      pushActivity('Reto bloqueado', 'Primero autentica al usuario con un auth code.');
+      pushActivity('Reto bloqueado', 'Primero autoriza DigitalIdentity para obtener auth code y token.');
       return;
     }
 
@@ -323,6 +359,80 @@ function App() {
   }
 
   const selectedChallenge = DAILY_CHALLENGES.find((item) => item.id === walletState.selectedChallengeId) || DAILY_CHALLENGES[0];
+
+  if (!permissionsGatePassed) {
+    return (
+      <main className="app-shell">
+        <section className="permissions-layout">
+          <article className="panel">
+            <p className="panel-tag">Sección de permisos</p>
+            <h1>Autoriza tu acceso antes de continuar</h1>
+            <p>
+              Para iniciar sesión necesitamos tu autorización de DigitalIdentity dentro de la SuperApp.
+            </p>
+
+            <div className="permission-item">
+              <div>
+                <strong>DigitalIdentity</strong>
+                <p className="permission-help">
+                  Data usage authorization: USER_ID, USER_AVATAR y USER_NICKNAME.
+                </p>
+              </div>
+              <div className="permission-actions">
+                <span className={digitalIdentityAuthorized ? 'permission-ok' : 'permission-pending'}>
+                  {digitalIdentityAuthorized ? 'Verificado' : 'Pendiente'}
+                </span>
+                <button type="button" onClick={handleAuthorizeAccess} disabled={loadingAction === 'authorize'}>
+                  {loadingAction === 'authorize' ? 'Autorizando...' : 'Autorizar DigitalIdentity'}
+                </button>
+              </div>
+            </div>
+
+            <div className="terms-box">
+              <p className="terms-legend">Leyenda</p>
+              <p>
+                Al continuar aceptas el uso de datos autorizados para autenticación, sesión y funcionamiento de la mini app.
+              </p>
+              <label className="terms-check">
+                <input
+                  type="checkbox"
+                  checked={termsAccepted}
+                  onChange={(event) => setTermsAccepted(event.target.checked)}
+                />
+                Acepto términos y condiciones
+              </label>
+            </div>
+
+            {permissionsError ? <p className="error-banner">{permissionsError}</p> : null}
+
+            <div className="action-row wrap">
+              <button type="button" onClick={handleContinueFromPermissions}>
+                {digitalIdentityAuthorized && termsAccepted ? 'Continuar' : 'Continuar (bloqueado)'}
+              </button>
+            </div>
+          </article>
+
+          <article className="panel">
+            <p className="panel-tag">Estado actual</p>
+            <div className="mini-metrics">
+              <div>
+                <strong>{isAlipayWebView() ? '✓' : '○'}</strong>
+                <span>Dentro de SuperApp</span>
+              </div>
+              <div>
+                <strong>{digitalIdentityAuthorized ? '✓' : '○'}</strong>
+                <span>DigitalIdentity</span>
+              </div>
+              <div>
+                <strong>{termsAccepted ? '✓' : '○'}</strong>
+                <span>Términos</span>
+              </div>
+            </div>
+          </article>
+        </section>
+      </main>
+    );
+  }
 
   return (
     <main className="app-shell">
