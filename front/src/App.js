@@ -1,16 +1,15 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import './App.css';
 import {
   authenticate,
   closePayment,
   createPayment,
   getBackendConfig,
-  getUserInfo,
   inquiryPayment,
   inquiryRefund,
   refundPayment,
 } from './services/tokaApi';
-import { alipayAuthScopes, isAlipayWebView, openPayment, requestAuthCode } from './lib/alipayBridge';
+import { isAlipayWebView, openPayment, requestAuthCode } from './lib/alipayBridge';
 
 const SESSION_KEY = 'toka-ripple-session';
 
@@ -56,8 +55,6 @@ const COMMUNITY_ITEMS = [
   },
 ];
 
-const authTypes = Object.keys(alipayAuthScopes);
-
 function safeParse(value, fallback) {
   try {
     return value ? JSON.parse(value) : fallback;
@@ -100,18 +97,10 @@ function App() {
     detail: 'La aplicacion ya tiene auth, usuario, pago y reembolso conectados al backend.',
   });
   const [activityLog, setActivityLog] = useState([]);
-  const [authType, setAuthType] = useState('DigitalIdentity');
   const [authCode, setAuthCode] = useState('');
   const [accessToken, setAccessToken] = useState('');
   const [userId, setUserId] = useState('');
   const [userInfo, setUserInfo] = useState(null);
-  const [userScopes, setUserScopes] = useState({
-    DigitalIdentity: true,
-    ContactInformation: true,
-    AddressInformation: true,
-    PersonalInformation: true,
-    KYCStatus: true,
-  });
   const [paymentForm, setPaymentForm] = useState({
     merchantCode: '',
     orderTitle: 'Entrada Toka Ripple',
@@ -127,14 +116,6 @@ function App() {
     selectedChallengeId: DAILY_CHALLENGES[0].id,
     challengeAccepted: false,
   });
-
-  const selectedScopes = useMemo(
-    () =>
-      authTypes
-        .filter((type) => userScopes[type])
-        .flatMap((type) => alipayAuthScopes[type]),
-    [userScopes]
-  );
 
   useEffect(() => {
     const savedSession = safeParse(window.localStorage.getItem(SESSION_KEY), null);
@@ -155,6 +136,40 @@ function App() {
           detail: 'No se pudo cargar la configuracion del backend.',
         });
       });
+
+    // Auto-login silencioso si no hay sesión ya guardada
+    if (!savedSession || !savedSession.accessToken) {
+      (async () => {
+        try {
+          setLoadingAction('auto-login');
+          const result = await requestAuthCode('DigitalIdentity');
+          const code = extractAuthCode(result);
+          
+          if (!code) {
+            throw new Error('No auth code received from bridge.');
+          }
+
+          const authResult = await authenticate(code);
+          const token = authResult?.data?.accessToken || '';
+          const nextUserId = authResult?.data?.userId || '';
+
+          if (!token || !nextUserId) {
+            throw new Error('Authentication returned empty token or userId.');
+          }
+
+          setAuthCode(code);
+          setAccessToken(token);
+          setUserId(nextUserId);
+        } catch (error) {
+          pushActivity(
+            'Error al iniciar sesion',
+            formatErrorDetail(error, 'No se pudo autenticar automáticamente. Por favor recarga la app.')
+          );
+        } finally {
+          setLoadingAction('');
+        }
+      })();
+    }
   }, []);
 
   useEffect(() => {
@@ -174,55 +189,6 @@ function App() {
   function pushActivity(title, detail) {
     setActivityLog((current) => [{ id: `${Date.now()}-${current.length}`, title, detail }, ...current].slice(0, 6));
     setMessage({ title, detail: typeof detail === 'string' ? detail : JSON.stringify(detail, null, 2) });
-  }
-
-  async function handleRequestAuthCode() {
-    setLoadingAction('auth-code');
-    try {
-      const result = await requestAuthCode(authType);
-      const code = extractAuthCode(result);
-      setAuthCode(code);
-      pushActivity('Auth code obtenido', code ? `Se obtuvo un codigo para ${authType}.` : 'El bridge respondio sin codigo visible.');
-    } catch (error) {
-      pushActivity(
-        'Auth code fallido',
-        isAlipayWebView()
-          ? `El puente Alipay respondio con error: ${formatErrorDetail(error, 'Error desconocido del bridge.')}`
-          : 'Abre esta URL dentro de Alipay para poder solicitar auth codes.'
-      );
-    } finally {
-      setLoadingAction('');
-    }
-  }
-
-  async function handleAuthenticate() {
-    setLoadingAction('authenticate');
-    try {
-      const result = await authenticate(authCode);
-      const token = result?.data?.accessToken || '';
-      const nextUserId = result?.data?.userId || '';
-      setAccessToken(token);
-      setUserId(nextUserId);
-      pushActivity('Sesion iniciada', 'JWT y userId obtenidos desde el backend.');
-      setActiveView('wallet');
-    } catch (error) {
-      pushActivity('Autenticacion fallida', error?.payload?.message || error.message || 'No se pudo autenticar.');
-    } finally {
-      setLoadingAction('');
-    }
-  }
-
-  async function handleLoadUserInfo() {
-    setLoadingAction('user-info');
-    try {
-      const result = await getUserInfo(accessToken, selectedScopes);
-      setUserInfo(result?.data || result);
-      pushActivity('Perfil cargado', 'La informacion combinada del usuario quedo lista.');
-    } catch (error) {
-      pushActivity('Perfil fallido', error?.payload?.message || error.message || 'No se pudo cargar el perfil.');
-    } finally {
-      setLoadingAction('');
-    }
   }
 
   function handleChallengeChange() {
@@ -351,12 +317,12 @@ function App() {
       <header className="top-bar">
         <div>
           <p className="eyebrow">Toka Ripple</p>
-          <h1>Mini App web funcional para entretenimiento y wallet</h1>
+          <h1>Mini App de entretenimiento y wallet</h1>
         </div>
         <div className="status-strip">
-          <span>{backendConfig ? `App ID ${backendConfig.appId}` : 'Cargando backend'}</span>
-          <span>{backendConfig?.hasMerchantCode ? 'Merchant listo' : 'Merchant pendiente'}</span>
-          <span>{isAlipayWebView() ? 'Dentro de Alipay' : 'Modo navegador'}</span>
+          <span>{userId ? `✓ Conectado` : '○ Conectando...'}</span>
+          <span>{backendConfig ? `Backend OK` : 'Backend...'}</span>
+          <span>{isAlipayWebView() ? 'Dentro de Toka' : 'H5'}</span>
         </div>
       </header>
 
@@ -408,40 +374,30 @@ function App() {
           </article>
 
           <article className="panel">
-            <p className="panel-tag">Integracion SSO</p>
-            <h2>Autenticacion y perfil</h2>
+            <p className="panel-tag">Estado de sesion</p>
+            <h2>Conectado a Toka</h2>
             <p>
-              La app puede pedir auth codes de Alipay, canjearlos por JWT y luego recuperar datos de usuario.
+              Sesión iniciada automáticamente desde la SuperApp. Tu perfil y datos están sincronizados.
             </p>
 
-            <div className="form-grid">
-              <label>
-                Tipo de auth
-                <select value={authType} onChange={(event) => setAuthType(event.target.value)}>
-                  {authTypes.map((type) => (
-                    <option key={type} value={type}>
-                      {type}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              <label>
-                Auth code
-                <input value={authCode} onChange={(event) => setAuthCode(event.target.value)} placeholder="QZvGrF" />
-              </label>
+            <div className="mini-metrics">
+              <div>
+                <strong>{userId ? '✓' : '○'}</strong>
+                <span>Usuario</span>
+              </div>
+              <div>
+                <strong>{accessToken ? '✓' : '○'}</strong>
+                <span>Token</span>
+              </div>
+              <div>
+                <strong>{userInfo?.nickName ? '✓' : '○'}</strong>
+                <span>Perfil</span>
+              </div>
             </div>
 
-            <div className="action-row">
-              <button type="button" onClick={handleRequestAuthCode} disabled={loadingAction === 'auth-code'}>
-                Pedir auth code
-              </button>
-              <button type="button" className="secondary" onClick={handleAuthenticate} disabled={loadingAction === 'authenticate'}>
-                Canjear JWT
-              </button>
-              <button type="button" className="secondary" onClick={handleLoadUserInfo} disabled={loadingAction === 'user-info'}>
-                Cargar perfil
-              </button>
+            <div className="identity-box">
+              <strong>{userInfo?.nickName || userInfo?.fullName || 'Cargando...'}</strong>
+              <span>{userInfo?.email || userInfo?.mobilePhone || 'Sincronizando datos'}</span>
             </div>
           </article>
 
@@ -462,14 +418,14 @@ function App() {
         <section className="two-column-layout">
           <article className="panel">
             <p className="panel-tag">Wallet Toka</p>
-            <h2>Estado y transacciones</h2>
+            <h2>Tu cartera y transacciones</h2>
             <p>
-              Crea pagos, consulta el estado, cierra intentos y solicita reembolsos usando el backend proxy.
+              Gestiona tus pagos y reembolsos con cero fricción directamente desde Toka.
             </p>
 
             <div className="mini-metrics">
               <div>
-                <strong>{userId ? 'SSO' : '--'}</strong>
+                <strong>{userId ? 'Activo' : 'Inactivo'}</strong>
                 <span>Sesion</span>
               </div>
               <div>
@@ -484,43 +440,37 @@ function App() {
 
             <div className="form-grid">
               <label>
-                Access token
-                <textarea value={accessToken} onChange={(event) => setAccessToken(event.target.value)} rows={4} placeholder="JWT" />
-              </label>
-
-              <label>
-                User ID
-                <input value={userId} onChange={(event) => setUserId(event.target.value)} placeholder="0000000000000000" />
-              </label>
-
-              <label>
-                Merchant code
-                <input value={paymentForm.merchantCode} onChange={(event) => setPaymentForm((current) => ({ ...current, merchantCode: event.target.value }))} placeholder="ABCDE" maxLength={5} />
+                Merchant Code
+                <input 
+                  value={paymentForm.merchantCode} 
+                  onChange={(event) => setPaymentForm((current) => ({ ...current, merchantCode: event.target.value }))} 
+                  placeholder="ABCDE" 
+                  maxLength={5} 
+                />
               </label>
 
               <label>
                 Titulo de orden
-                <input value={paymentForm.orderTitle} onChange={(event) => setPaymentForm((current) => ({ ...current, orderTitle: event.target.value }))} />
+                <input 
+                  value={paymentForm.orderTitle} 
+                  onChange={(event) => setPaymentForm((current) => ({ ...current, orderTitle: event.target.value }))} 
+                />
               </label>
 
               <label>
                 Monto
-                <input value={paymentForm.orderAmount} onChange={(event) => setPaymentForm((current) => ({ ...current, orderAmount: event.target.value }))} />
+                <input 
+                  value={paymentForm.orderAmount} 
+                  onChange={(event) => setPaymentForm((current) => ({ ...current, orderAmount: event.target.value }))} 
+                />
               </label>
 
               <label>
                 Moneda
-                <input value={paymentForm.currency} onChange={(event) => setPaymentForm((current) => ({ ...current, currency: event.target.value }))} />
-              </label>
-
-              <label>
-                Payment ID
-                <input value={paymentForm.paymentId} onChange={(event) => setPaymentForm((current) => ({ ...current, paymentId: event.target.value }))} placeholder="202604011001100100011171003629010" />
-              </label>
-
-              <label>
-                Refund ID
-                <input value={paymentForm.refundId} onChange={(event) => setPaymentForm((current) => ({ ...current, refundId: event.target.value }))} placeholder="202604011001130100011171000213601" />
+                <input 
+                  value={paymentForm.currency} 
+                  onChange={(event) => setPaymentForm((current) => ({ ...current, currency: event.target.value }))} 
+                />
               </label>
             </div>
 
@@ -544,27 +494,16 @@ function App() {
           </article>
 
           <article className="panel">
-            <p className="panel-tag">Perfil</p>
-            <h2>Datos de identidad</h2>
-            <p>Los scopes se pueden activar o desactivar antes de consultar el perfil consolidado.</p>
-
-            <div className="scope-list">
-              {authTypes.map((type) => (
-                <label key={type} className="scope-item">
-                  <input
-                    type="checkbox"
-                    checked={Boolean(userScopes[type])}
-                    onChange={(event) => setUserScopes((current) => ({ ...current, [type]: event.target.checked }))}
-                  />
-                  <span>{type}</span>
-                </label>
-              ))}
-            </div>
+            <p className="panel-tag">Tu Identidad</p>
+            <h2>Datos de perfil sincronizados</h2>
+            <p>Información verificada y segura desde Toka.</p>
 
             <div className="identity-box">
-              <strong>{userInfo?.fullName || 'Sin perfil cargado'}</strong>
-              <span>{userInfo?.nickName || 'Usa el boton Cargar perfil'}</span>
-              <pre>{JSON.stringify(userInfo || {}, null, 2)}</pre>
+              <strong>{userInfo?.fullName || userInfo?.nickName || 'Nombre de usuario'}</strong>
+              <span>{userInfo?.email || userInfo?.mobilePhone || 'email@example.com'}</span>
+              <pre style={{marginTop: '1rem', fontSize: '0.85rem', maxHeight: '200px', overflow: 'auto'}}>
+                {JSON.stringify(userInfo || {}, null, 2)}
+              </pre>
             </div>
           </article>
         </section>
