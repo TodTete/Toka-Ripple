@@ -9,7 +9,7 @@ import {
   inquiryRefund,
   refundPayment,
 } from './services/tokaApi';
-import { isAlipayWebView, openPayment, requestAuthCode } from './lib/alipayBridge';
+import { getBridgeRuntimeInfo, isAlipayWebView, openPayment, requestAuthCode } from './lib/alipayBridge';
 
 const SESSION_KEY = 'toka-ripple-session';
 
@@ -120,6 +120,7 @@ function App() {
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [permissionsGatePassed, setPermissionsGatePassed] = useState(false);
   const [permissionsError, setPermissionsError] = useState('');
+  const [bridgeDiagnostics, setBridgeDiagnostics] = useState('');
 
   useEffect(() => {
     const savedSession = safeParse(window.localStorage.getItem(SESSION_KEY), null);
@@ -201,6 +202,13 @@ function App() {
         }
       }
 
+      if (result?.__meta) {
+        pushActivity(
+          'Método de autorización',
+          `Método exitoso: ${result.__meta.method || 'unknown'}`
+        );
+      }
+
       const code = extractAuthCode(result);
       
       if (!code) {
@@ -226,6 +234,26 @@ function App() {
       const enrichedDetail = /denied|no permission|jsapi call denied/i.test(detail)
         ? `${detail} Verifica en Alipay/Toka: app release en ambiente Test, feature User_Digital_Identity_Information activo para tu appId y apertura dentro de la SuperApp.`
         : detail;
+
+      const runtimeInfo = getBridgeRuntimeInfo();
+      const diagnosticsPayload = {
+        errorMessage: detail,
+        runtimeInfo,
+        attempts: error?.attempts || error?.causes?.map((item) => ({
+          method: item?.method,
+          message: item?.message,
+          response: item?.response || null,
+        })) || [],
+        checklist: [
+          'App Type = H5+ y URL abierta desde SuperApp real (no navegador externo).',
+          'Version liberada en ambiente Test para ese Mini Program ID.',
+          'Feature User_Digital_Identity_Information = Activated para el mismo appId.',
+          'Global config Test vinculado (Client ID / Merchant ID) y release aplicado.',
+          'No usar cached WebView viejo: cerrar y reabrir mini app después del release.',
+        ],
+      };
+      setBridgeDiagnostics(JSON.stringify(diagnosticsPayload, null, 2));
+
       setPermissionsError(enrichedDetail);
       pushActivity(
         'Error al autorizar',
@@ -424,6 +452,13 @@ function App() {
             </div>
 
             {permissionsError ? <p className="error-banner">{permissionsError}</p> : null}
+
+            {bridgeDiagnostics ? (
+              <div className="diagnostic-box">
+                <p className="terms-legend">Diagnóstico técnico</p>
+                <pre>{bridgeDiagnostics}</pre>
+              </div>
+            ) : null}
 
             <div className="action-row wrap">
               <button type="button" onClick={handleContinueFromPermissions}>

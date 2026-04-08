@@ -37,7 +37,21 @@ function normalizeBridgeError(method, response) {
     'Unknown bridge error.';
   const error = new Error(`Bridge method ${method} failed: ${detail}`);
   error.response = response;
+  error.method = method;
+  error.detail = detail;
   return error;
+}
+
+export function getBridgeRuntimeInfo() {
+  const bridge = window.my || window.AlipayJSBridge;
+
+  return {
+    hasMy: Boolean(window.my),
+    hasAlipayJSBridge: Boolean(window.AlipayJSBridge),
+    hasBridge: Boolean(bridge),
+    hasBridgeCall: Boolean(bridge && typeof bridge.call === 'function'),
+    userAgent: typeof navigator !== 'undefined' ? navigator.userAgent || '' : '',
+  };
 }
 
 function hasBridgeError(response) {
@@ -137,12 +151,19 @@ function waitForBridgeReady(timeoutMs = 10000) {
 
 async function callBridgeWithFallback(candidates) {
   const errors = [];
+  const attempts = [];
 
   for (const candidate of candidates) {
     try {
       const result = await callBridgeByMethod(candidate.method, candidate.params);
-      return { result, method: candidate.method, params: candidate.params };
+      return { result, method: candidate.method, params: candidate.params, attempts };
     } catch (error) {
+      attempts.push({
+        method: candidate.method,
+        params: candidate.params,
+        message: error?.message || 'Unknown bridge error',
+        response: error?.response || null,
+      });
       errors.push(error);
     }
   }
@@ -151,6 +172,7 @@ async function callBridgeWithFallback(candidates) {
     errors.map((error) => error.message).join(' | ') || 'Unable to execute bridge auth method.'
   );
   mergedError.causes = errors;
+  mergedError.attempts = attempts;
   throw mergedError;
 }
 
@@ -195,8 +217,15 @@ function getAuthMethodCandidates(authType, usage, strictMethodOnly = false) {
 export async function requestAuthCode(authType, usage, strictMethodOnly = false) {
   await waitForBridgeReady();
   const candidates = getAuthMethodCandidates(authType, usage, strictMethodOnly);
-  const { result } = await callBridgeWithFallback(candidates);
-  return result;
+  const { result, method, attempts } = await callBridgeWithFallback(candidates);
+  return {
+    ...result,
+    __meta: {
+      method,
+      attempts,
+      strictMethodOnly,
+    },
+  };
 }
 
 export function openPayment(paymentUrl) {
