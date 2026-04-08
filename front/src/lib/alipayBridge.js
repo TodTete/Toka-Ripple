@@ -25,7 +25,7 @@ function isAlipayUserAgent() {
 }
 
 export function isAlipayWebView() {
-  return Boolean(window.AlipayJSBridge || window.my || isAlipayUserAgent());
+  return Boolean(window.AlipayJSBridge || isAlipayUserAgent());
 }
 
 function normalizeBridgeError(method, response) {
@@ -43,7 +43,7 @@ function normalizeBridgeError(method, response) {
 }
 
 export function getBridgeRuntimeInfo() {
-  const bridge = window.my || window.AlipayJSBridge;
+  const bridge = window.AlipayJSBridge || window.my;
 
   return {
     hasMy: Boolean(window.my),
@@ -69,7 +69,7 @@ function hasBridgeError(response) {
 
 function callBridgeByMethod(method, params) {
   return new Promise((resolve, reject) => {
-    const bridge = window.my || window.AlipayJSBridge;
+    const bridge = window.AlipayJSBridge || window.my;
 
     if (!bridge) {
       reject(new Error('Alipay bridge is not available.'));
@@ -98,7 +98,12 @@ function callBridgeByMethod(method, params) {
       return;
     }
 
-    reject(new Error(`Bridge method ${method} is not available.`));
+    const availableKeys = Object.keys(bridge).slice(0, 20).join(', ') || 'none';
+    reject(
+      new Error(
+        `Bridge method ${method} is not available. bridge.call=${typeof bridge.call === 'function'} availableKeys=${availableKeys}`
+      )
+    );
   });
 }
 

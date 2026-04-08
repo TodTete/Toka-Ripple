@@ -407,6 +407,7 @@ function App() {
   }
 
   const selectedChallenge = DAILY_CHALLENGES.find((item) => item.id === walletState.selectedChallengeId) || DAILY_CHALLENGES[0];
+  const bridgeRuntimeInfo = getBridgeRuntimeInfo();
 
   if (!permissionsGatePassed) {
     return (
@@ -465,6 +466,18 @@ function App() {
                 {digitalIdentityAuthorized && termsAccepted ? 'Continuar' : 'Continuar (bloqueado)'}
               </button>
             </div>
+
+            <div className="diagnostic-box">
+              <p className="terms-legend">Diagnóstico runtime</p>
+              <pre>{JSON.stringify(bridgeRuntimeInfo, null, 2)}</pre>
+            </div>
+
+            {bridgeDiagnostics ? (
+              <div className="diagnostic-box">
+                <p className="terms-legend">Último error técnico</p>
+                <pre>{bridgeDiagnostics}</pre>
+              </div>
+            ) : null}
           </article>
 
           <article className="panel">
@@ -483,6 +496,12 @@ function App() {
                 <span>Términos</span>
               </div>
             </div>
+
+            {!bridgeRuntimeInfo.hasAlipayJSBridge ? (
+              <p className="error-banner">
+                No se detecta <strong>AlipayJSBridge</strong>. Si ves esto en navegador, es esperado. Para autorizar de verdad debes abrir la mini app dentro de la SuperApp o el WebView H5+ real.
+              </p>
+            ) : null}
           </article>
         </section>
       </main>
