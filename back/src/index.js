@@ -1,11 +1,15 @@
 const express = require('express');
 const cors = require('cors');
+const path = require('path');
+const fs = require('fs');
 require('dotenv').config();
 
 const { getConfig, request } = require('./tokaClient');
 
 const app = express();
 const port = process.env.PORT || 4000;
+const frontendBuildPath = path.join(__dirname, '../../front/build');
+const frontendIndexPath = path.join(frontendBuildPath, 'index.html');
 
 app.use(cors({ origin: true }));
 app.use(express.json());
@@ -310,8 +314,27 @@ app.post('/api/alipay/payment/inquiry-refund', validateBaseRequest, async (req, 
   }
 });
 
-app.use((_req, res) => {
-  res.status(404).json({
+app.use(express.static(frontendBuildPath));
+
+app.use((req, res) => {
+  if (req.path.startsWith('/api')) {
+    return res.status(404).json({
+      success: false,
+      statusCode: 404,
+      message: 'Route not found.',
+      data: {},
+    });
+  }
+
+  if (req.method === 'GET') {
+    if (!fs.existsSync(frontendIndexPath)) {
+      return res.status(500).send('Frontend build not found. Run the build step before starting the server.');
+    }
+
+    return res.sendFile(frontendIndexPath);
+  }
+
+  return res.status(404).json({
     success: false,
     statusCode: 404,
     message: 'Route not found.',
