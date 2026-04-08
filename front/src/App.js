@@ -161,8 +161,17 @@ function App() {
   async function handleAuthorizeAccess() {
     setLoadingAction('authorize');
     try {
+      if (!isAlipayWebView()) {
+        throw new Error('Esta función solo está disponible dentro de la SuperApp de Toka/Alipay.');
+      }
+
       const authorizationMsg = 
-        'Toka Ripple necesita acceso a: tu foto de perfil, apodo y ID de usuario para sincronizar tu perfil y disfrutar de retos personalizados.';
+        'Toka Ripple needs your authorization to access your Digital Identity (user ID, avatar y nickname) para iniciar sesión y sincronizar tu perfil.';
+
+      pushActivity(
+        'Solicitando autorización',
+        'Se abrirá el popup de Data Usage Authorization para DigitalIdentity.'
+      );
       
       const result = await requestAuthCode('DigitalIdentity', authorizationMsg);
       const code = extractAuthCode(result);
@@ -383,7 +392,7 @@ function App() {
             <p className="panel-tag">Estado de sesion</p>
             <h2>Conectado a Toka</h2>
             <p>
-              Sesión iniciada automáticamente desde la SuperApp. Tu perfil y datos están sincronizados.
+              La sesión requiere tu autorización explícita dentro de la SuperApp para obtener authCode y JWT.
             </p>
 
             <div className="mini-metrics">
@@ -549,16 +558,16 @@ function App() {
 
             <div className="action-row wrap">
               <button type="button" className="secondary" onClick={() => setModalOpen(false)}>
-                Cambiar
+                Cerrar
               </button>
               <button
                 type="button"
                 onClick={() => {
-                  handleChallengeAccept();
-                  setModalOpen(false);
+                  handleAuthorizeAccess();
                 }}
+                disabled={loadingAction === 'authorize'}
               >
-                Aceptar
+                {loadingAction === 'authorize' ? 'Autorizando...' : 'Autorizar DigitalIdentity'}
               </button>
             </div>
           </section>

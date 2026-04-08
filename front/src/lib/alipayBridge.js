@@ -86,19 +86,29 @@ function callBridgeByMethod(method, params) {
   });
 }
 
-function waitForBridgeReady(timeoutMs = 3000) {
+function waitForBridgeReady(timeoutMs = 10000) {
   if (window.AlipayJSBridge || window.my) {
     return Promise.resolve();
   }
 
   return new Promise((resolve, reject) => {
     let settled = false;
+    let pollTimer = null;
+
+    const cleanup = () => {
+      if (pollTimer) {
+        clearInterval(pollTimer);
+      }
+      document.removeEventListener('AlipayJSBridgeReady', onReady);
+    };
+
     const timeout = setTimeout(() => {
       if (settled) {
         return;
       }
 
       settled = true;
+      cleanup();
       reject(new Error('Alipay bridge readiness timed out.'));
     }, timeoutMs);
 
@@ -109,10 +119,17 @@ function waitForBridgeReady(timeoutMs = 3000) {
 
       settled = true;
       clearTimeout(timeout);
+      cleanup();
       resolve();
     }
 
-    document.addEventListener('AlipayJSBridgeReady', onReady, { once: true });
+    document.addEventListener('AlipayJSBridgeReady', onReady);
+
+    pollTimer = setInterval(() => {
+      if (window.AlipayJSBridge || window.my) {
+        onReady();
+      }
+    }, 100);
   });
 }
 
