@@ -70,6 +70,26 @@ function extractAuthCode(result) {
   return result?.authCode || result?.authcode || result?.result?.authCode || result?.result?.authcode || '';
 }
 
+function formatErrorDetail(error, fallbackText) {
+  if (!error) {
+    return fallbackText;
+  }
+
+  if (typeof error === 'string') {
+    return error;
+  }
+
+  if (error.message) {
+    return error.message;
+  }
+
+  try {
+    return JSON.stringify(error);
+  } catch {
+    return fallbackText;
+  }
+}
+
 function App() {
   const [backendConfig, setBackendConfig] = useState(null);
   const [activeView, setActiveView] = useState('challenge');
@@ -167,7 +187,7 @@ function App() {
       pushActivity(
         'Auth code fallido',
         isAlipayWebView()
-          ? 'El puente Alipay respondio con error.'
+          ? `El puente Alipay respondio con error: ${formatErrorDetail(error, 'Error desconocido del bridge.')}`
           : 'Abre esta URL dentro de Alipay para poder solicitar auth codes.'
       );
     } finally {
