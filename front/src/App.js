@@ -137,39 +137,6 @@ function App() {
         });
       });
 
-    // Auto-login silencioso si no hay sesión ya guardada
-    if (!savedSession || !savedSession.accessToken) {
-      (async () => {
-        try {
-          setLoadingAction('auto-login');
-          const result = await requestAuthCode('DigitalIdentity');
-          const code = extractAuthCode(result);
-          
-          if (!code) {
-            throw new Error('No auth code received from bridge.');
-          }
-
-          const authResult = await authenticate(code);
-          const token = authResult?.data?.accessToken || '';
-          const nextUserId = authResult?.data?.userId || '';
-
-          if (!token || !nextUserId) {
-            throw new Error('Authentication returned empty token or userId.');
-          }
-
-          setAuthCode(code);
-          setAccessToken(token);
-          setUserId(nextUserId);
-        } catch (error) {
-          pushActivity(
-            'Error al iniciar sesion',
-            formatErrorDetail(error, 'No se pudo autenticar automáticamente. Por favor recarga la app.')
-          );
-        } finally {
-          setLoadingAction('');
-        }
-      })();
-    }
   }, []);
 
   useEffect(() => {
@@ -189,6 +156,42 @@ function App() {
   function pushActivity(title, detail) {
     setActivityLog((current) => [{ id: `${Date.now()}-${current.length}`, title, detail }, ...current].slice(0, 6));
     setMessage({ title, detail: typeof detail === 'string' ? detail : JSON.stringify(detail, null, 2) });
+  }
+
+  async function handleAuthorizeAccess() {
+    setLoadingAction('authorize');
+    try {
+      const authorizationMsg = 
+        'Toka Ripple necesita acceso a: tu foto de perfil, apodo y ID de usuario para sincronizar tu perfil y disfrutar de retos personalizados.';
+      
+      const result = await requestAuthCode('DigitalIdentity', authorizationMsg);
+      const code = extractAuthCode(result);
+      
+      if (!code) {
+        throw new Error('No se recibió un código de autorización del puente Alipay.');
+      }
+
+      const authResult = await authenticate(code);
+      const token = authResult?.data?.accessToken || '';
+      const nextUserId = authResult?.data?.userId || '';
+
+      if (!token || !nextUserId) {
+        throw new Error('La autenticación devolvió un token o userId vacío.');
+      }
+
+      setAuthCode(code);
+      setAccessToken(token);
+      setUserId(nextUserId);
+      setModalOpen(false);
+      pushActivity('Sesión iniciada', 'Te has autenticado correctamente con tu cuenta Alipay.');
+    } catch (error) {
+      pushActivity(
+        'Error al autorizar',
+        formatErrorDetail(error, 'No se pudo obtener el código de autorización del puente Alipay.')
+      );
+    } finally {
+      setLoadingAction('');
+    }
   }
 
   function handleChallengeChange() {
@@ -366,6 +369,9 @@ function App() {
               </button>
               <button type="button" className="secondary" onClick={handleChallengeAccept} disabled={loadingAction === 'challenge'}>
                 Aceptar reto
+              </button>
+              <button type="button" onClick={handleAuthorizeAccess} disabled={loadingAction === 'authorize'}>
+                Autorizar acceso
               </button>
               <button type="button" className="secondary" onClick={() => setActiveView('wallet')}>
                 Ir a wallet

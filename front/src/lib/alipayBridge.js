@@ -135,7 +135,7 @@ async function callBridgeWithFallback(candidates) {
   throw mergedError;
 }
 
-function getAuthMethodCandidates(authType) {
+function getAuthMethodCandidates(authType, usage) {
   const scopes = AUTH_SCOPE_MAP[authType];
 
   if (!scopes) {
@@ -148,7 +148,7 @@ function getAuthMethodCandidates(authType) {
       method: methodName,
       params: {
         scopes,
-        usage: 'Authorization requested by Toka Ripple.',
+        usage:usage || 'Authorization requested by Toka Ripple.',
       },
     },
   ];
@@ -169,9 +169,9 @@ function getAuthMethodCandidates(authType) {
   return candidates;
 }
 
-export async function requestAuthCode(authType) {
+export async function requestAuthCode(authType, usage) {
   await waitForBridgeReady();
-  const candidates = getAuthMethodCandidates(authType);
+  const candidates = getAuthMethodCandidates(authType, usage);
   const { result } = await callBridgeWithFallback(candidates);
   return result;
 }
