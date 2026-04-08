@@ -1,5 +1,14 @@
-node_modules
+# Dependencias
+node_modules/
+**/node_modules/
+
+# Producción
+front/build/
+
+# Variables de entorno (Seguridad)
 .env
-front/node_modules
-back/node_modules
-front/build
+.env.local
+
+# Otros
+.DS_Store
+.eslintcache
