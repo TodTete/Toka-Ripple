@@ -32,8 +32,8 @@ export function getBackendConfig() {
   });
 }
 
-export function authenticate(authcode) {
-  return fetchJson('/api/alipay/authenticate', { authcode });
+export function authenticate(authcode, jsapiMeta = null) {
+  return fetchJson('/api/alipay/authenticate', { authcode, jsapiMeta });
 }
 
 export function getUserInfo(accessToken, authCodes) {

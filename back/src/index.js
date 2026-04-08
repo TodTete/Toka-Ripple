@@ -26,6 +26,27 @@ function validatePaymentAmount(amount) {
   return amount && typeof amount.value !== 'undefined' && typeof amount.currency === 'string';
 }
 
+function validateJsapiMeta(jsapiMeta) {
+  if (!jsapiMeta) {
+    return { valid: true };
+  }
+
+  const resultCode = String(jsapiMeta.resultCode || '').trim();
+
+  if (!resultCode) {
+    return { valid: true };
+  }
+
+  if (!/success|s|20000000|ok/i.test(resultCode)) {
+    return {
+      valid: false,
+      message: `JSAPI exchange rejected. resultCode=${resultCode} resultMsg=${jsapiMeta.resultMsg || ''}`,
+    };
+  }
+
+  return { valid: true };
+}
+
 function validateBaseRequest(req, res, next) {
   const config = getConfig();
 
@@ -79,6 +100,18 @@ app.post('/api/alipay/authenticate', validateBaseRequest, async (req, res) => {
       statusCode: 400,
       message: 'authcode is required.',
       data: {},
+    });
+  }
+
+  const jsapiMetaValidation = validateJsapiMeta(req.body.jsapiMeta);
+  if (!jsapiMetaValidation.valid) {
+    return res.status(400).json({
+      success: false,
+      statusCode: 400,
+      message: jsapiMetaValidation.message,
+      data: {
+        jsapiMeta: req.body.jsapiMeta || null,
+      },
     });
   }
 

@@ -67,6 +67,42 @@ function extractAuthCode(result) {
   return result?.authCode || result?.authcode || result?.result?.authCode || result?.result?.authcode || '';
 }
 
+function extractJsapiExchange(result) {
+  return {
+    authCode: extractAuthCode(result),
+    resultCode:
+      result?.resultCode ||
+      result?.result?.resultCode ||
+      result?.result_status ||
+      result?.status ||
+      '',
+    resultMsg:
+      result?.resultMsg ||
+      result?.result?.resultMsg ||
+      result?.errorMessage ||
+      result?.errorMsg ||
+      result?.message ||
+      '',
+    startTime:
+      result?.startTime ||
+      result?.result?.startTime ||
+      result?.time ||
+      null,
+  };
+}
+
+function isJsapiExchangeValid(exchange) {
+  if (!exchange.authCode) {
+    return false;
+  }
+
+  if (!exchange.resultCode) {
+    return true;
+  }
+
+  return /success|s|20000000|ok/i.test(String(exchange.resultCode));
+}
+
 function formatErrorDetail(error, fallbackText) {
   if (!error) {
     return fallbackText;
@@ -121,6 +157,7 @@ function App() {
   const [permissionsGatePassed, setPermissionsGatePassed] = useState(false);
   const [permissionsError, setPermissionsError] = useState('');
   const [bridgeDiagnostics, setBridgeDiagnostics] = useState('');
+  const [authExchangeMeta, setAuthExchangeMeta] = useState(null);
 
   useEffect(() => {
     const savedSession = safeParse(window.localStorage.getItem(SESSION_KEY), null);
@@ -209,13 +246,23 @@ function App() {
         );
       }
 
-      const code = extractAuthCode(result);
-      
-      if (!code) {
-        throw new Error('No se recibió un código de autorización del puente Alipay.');
+      const exchange = extractJsapiExchange(result);
+      setAuthExchangeMeta(exchange);
+
+      if (!isJsapiExchangeValid(exchange)) {
+        throw new Error(
+          `Intercambio JSAPI inválido. resultCode=${exchange.resultCode || 'empty'} resultMsg=${exchange.resultMsg || 'empty'} startTime=${exchange.startTime || 'empty'}`
+        );
       }
 
-      const authResult = await authenticate(code);
+      const code = exchange.authCode;
+
+      pushActivity(
+        'Intercambio JSAPI',
+        `resultCode=${exchange.resultCode || 'n/a'} resultMsg=${exchange.resultMsg || 'n/a'} startTime=${exchange.startTime || 'n/a'}`
+      );
+
+      const authResult = await authenticate(code, exchange);
       const token = authResult?.data?.accessToken || '';
       const nextUserId = authResult?.data?.userId || '';
 
@@ -239,6 +286,7 @@ function App() {
       const diagnosticsPayload = {
         errorMessage: detail,
         runtimeInfo,
+        authExchangeMeta,
         attempts: error?.attempts || error?.causes?.map((item) => ({
           method: item?.method,
           message: item?.message,
@@ -471,6 +519,13 @@ function App() {
               <p className="terms-legend">Diagnóstico runtime</p>
               <pre>{JSON.stringify(bridgeRuntimeInfo, null, 2)}</pre>
             </div>
+
+            {authExchangeMeta ? (
+              <div className="diagnostic-box">
+                <p className="terms-legend">Intercambio JSAPI capturado</p>
+                <pre>{JSON.stringify(authExchangeMeta, null, 2)}</pre>
+              </div>
+            ) : null}
 
             {bridgeDiagnostics ? (
               <div className="diagnostic-box">
