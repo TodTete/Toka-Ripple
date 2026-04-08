@@ -183,7 +183,24 @@ function App() {
         'Se abrirá el popup de Data Usage Authorization para DigitalIdentity.'
       );
       
-      const result = await requestAuthCode('DigitalIdentity', authorizationMsg, true);
+      let result;
+
+      try {
+        result = await requestAuthCode('DigitalIdentity', authorizationMsg, true);
+      } catch (strictError) {
+        const strictDetail = formatErrorDetail(strictError, 'DigitalIdentity authorization failed.');
+
+        if (/denied|no permission|jsapi call denied/i.test(strictDetail)) {
+          pushActivity(
+            'DigitalIdentity denegado',
+            'Reintentando con método alterno de auth para obtener JWT.'
+          );
+          result = await requestAuthCode('DigitalIdentity', authorizationMsg, false);
+        } else {
+          throw strictError;
+        }
+      }
+
       const code = extractAuthCode(result);
       
       if (!code) {
@@ -206,10 +223,13 @@ function App() {
       pushActivity('Sesión iniciada', 'Te has autenticado correctamente con tu cuenta Alipay.');
     } catch (error) {
       const detail = formatErrorDetail(error, 'No se pudo obtener el código de autorización del puente Alipay.');
-      setPermissionsError(detail);
+      const enrichedDetail = /denied|no permission|jsapi call denied/i.test(detail)
+        ? `${detail} Verifica en Alipay/Toka: app release en ambiente Test, feature User_Digital_Identity_Information activo para tu appId y apertura dentro de la SuperApp.`
+        : detail;
+      setPermissionsError(enrichedDetail);
       pushActivity(
         'Error al autorizar',
-        detail
+        enrichedDetail
       );
     } finally {
       setLoadingAction('');

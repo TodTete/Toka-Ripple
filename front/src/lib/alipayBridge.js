@@ -46,6 +46,8 @@ function hasBridgeError(response) {
       (response.error ||
         response.success === false ||
         response.errorCode ||
+        response.error === 'DENIED' ||
+        response.error === 'NO_PERMISSION' ||
         response.errorMessage ||
         response.errorMsg)
   );
@@ -53,7 +55,7 @@ function hasBridgeError(response) {
 
 function callBridgeByMethod(method, params) {
   return new Promise((resolve, reject) => {
-    const bridge = window.AlipayJSBridge || window.my;
+    const bridge = window.my || window.AlipayJSBridge;
 
     if (!bridge) {
       reject(new Error('Alipay bridge is not available.'));
