@@ -1,0 +1,27 @@
+{
+  "name": "toka-ripple",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Toka Ripple fullstack app for Railway deployment.",
+  "main": "back/src/index.js",
+  "scripts": {
+    "install:back": "npm install --prefix back",
+    "install:front": "npm install --prefix front",
+    "build:front": "npm run build --prefix front",
+    "build": "npm run build:front",
+    "postinstall": "npm run install:back && npm run install:front && npm run build:front",
+    "start": "node back/src/index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/TodTete/Toka-Ripple.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/TodTete/Toka-Ripple/issues"
+  },
+  "homepage": "https://github.com/TodTete/Toka-Ripple#readme"
+}

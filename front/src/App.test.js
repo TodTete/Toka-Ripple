@@ -4,5 +4,5 @@ import App from './App';
 
 test('renders the Toka Ripple shell', () => {
   render(<App />);
-  expect(screen.getByText(/Toka Ripple/i)).toBeInTheDocument();
+  expect(screen.getByText(/Mini App web funcional/i)).toBeInTheDocument();
 });
