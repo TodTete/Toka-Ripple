@@ -1,12 +1,326 @@
-const http = require('http');
+const express = require('express');
+const cors = require('cors');
+require('dotenv').config();
 
-const PORT = 3000;
+const { getConfig, request } = require('./tokaClient');
 
-const server = http.createServer((req, res) => {
-  res.writeHead(200, { 'Content-Type': 'text/plain' });
-  res.end('Servidor funcionando');
+const app = express();
+const port = process.env.PORT || 4000;
+
+app.use(cors({ origin: true }));
+app.use(express.json());
+
+function validateAuthCode(body) {
+  return typeof body?.authcode === 'string' && body.authcode.trim().length > 0;
+}
+
+function validateAccessToken(body) {
+  return typeof body?.accessToken === 'string' && body.accessToken.trim().length > 0;
+}
+
+function validatePaymentAmount(amount) {
+  return amount && typeof amount.value !== 'undefined' && typeof amount.currency === 'string';
+}
+
+function validateBaseRequest(req, res, next) {
+  const config = getConfig();
+
+  if (!config.appId || config.appId.length !== 16) {
+    return res.status(500).json({
+      success: false,
+      statusCode: 500,
+      message: 'TOKA_APP_ID must be configured with exactly 16 characters.',
+      data: {},
+    });
+  }
+
+  next();
+}
+
+function forwardResult(res, result) {
+  if (typeof result.payload === 'string') {
+    return res.status(result.status).send(result.payload);
+  }
+
+  return res.status(result.status).json(result.payload);
+}
+
+app.get('/health', (_req, res) => {
+  res.status(200).send('Healthy');
 });
 
-server.listen(PORT, () => {
-  console.log(`Servidor escuchando en http://localhost:${PORT}`);
+app.get('/api/config', (_req, res) => {
+  const config = getConfig();
+  res.json({
+    success: true,
+    statusCode: 200,
+    message: 'Configuration loaded.',
+    data: {
+      appId: config.appId,
+      hasMerchantCode: Boolean(config.merchantCode),
+      tokaApiBaseUrl: config.baseUrl,
+    },
+  });
+});
+
+app.post('/api/alipay/authenticate', validateBaseRequest, async (req, res) => {
+  if (!validateAuthCode(req.body)) {
+    return res.status(400).json({
+      success: false,
+      statusCode: 400,
+      message: 'authcode is required.',
+      data: {},
+    });
+  }
+
+  try {
+    const result = await request('/v1/user/authenticate', {
+      body: { authcode: req.body.authcode },
+    });
+    return forwardResult(res, result);
+  } catch (error) {
+    return res.status(502).json({
+      success: false,
+      statusCode: 502,
+      message: error.name === 'AbortError' ? 'Toka API request timed out.' : 'Unable to reach Toka API.',
+      data: {},
+    });
+  }
+});
+
+app.post('/api/alipay/user-info', validateBaseRequest, async (req, res) => {
+  if (!validateAccessToken(req.body)) {
+    return res.status(400).json({
+      success: false,
+      statusCode: 400,
+      message: 'accessToken is required.',
+      data: {},
+    });
+  }
+
+  const authCodes = Array.isArray(req.body.authCodes) ? req.body.authCodes.slice(0, 5) : [];
+
+  if (authCodes.length === 0) {
+    return res.status(400).json({
+      success: false,
+      statusCode: 400,
+      message: 'authCodes must be a non-empty array.',
+      data: {},
+    });
+  }
+
+  try {
+    const result = await request('/v1/user/info', {
+      body: { authCodes },
+      accessToken: req.body.accessToken,
+    });
+    return forwardResult(res, result);
+  } catch (error) {
+    return res.status(502).json({
+      success: false,
+      statusCode: 502,
+      message: error.name === 'AbortError' ? 'Toka API request timed out.' : 'Unable to reach Toka API.',
+      data: {},
+    });
+  }
+});
+
+app.post('/api/alipay/payment/create', validateBaseRequest, async (req, res) => {
+  if (!validateAccessToken(req.body)) {
+    return res.status(400).json({
+      success: false,
+      statusCode: 400,
+      message: 'accessToken is required.',
+      data: {},
+    });
+  }
+
+  if (!req.body.userId || !req.body.orderTitle || !validatePaymentAmount(req.body.orderAmount)) {
+    return res.status(400).json({
+      success: false,
+      statusCode: 400,
+      message: 'userId, orderTitle and orderAmount are required.',
+      data: {},
+    });
+  }
+
+  try {
+    const result = await request('/v1/payment/create', {
+      body: {
+        userId: req.body.userId,
+        orderTitle: req.body.orderTitle,
+        orderAmount: req.body.orderAmount,
+      },
+      accessToken: req.body.accessToken,
+      merchantCode: req.body.merchantCode,
+    });
+    return forwardResult(res, result);
+  } catch (error) {
+    return res.status(502).json({
+      success: false,
+      statusCode: 502,
+      message: error.name === 'AbortError' ? 'Toka API request timed out.' : 'Unable to reach Toka API.',
+      data: {},
+    });
+  }
+});
+
+app.post('/api/alipay/payment/inquiry', validateBaseRequest, async (req, res) => {
+  if (!validateAccessToken(req.body)) {
+    return res.status(400).json({
+      success: false,
+      statusCode: 400,
+      message: 'accessToken is required.',
+      data: {},
+    });
+  }
+
+  if (!req.body.paymentId) {
+    return res.status(400).json({
+      success: false,
+      statusCode: 400,
+      message: 'paymentId is required.',
+      data: {},
+    });
+  }
+
+  try {
+    const result = await request('/v1/payment/inquiry', {
+      body: { paymentId: req.body.paymentId },
+      accessToken: req.body.accessToken,
+    });
+    return forwardResult(res, result);
+  } catch (error) {
+    return res.status(502).json({
+      success: false,
+      statusCode: 502,
+      message: error.name === 'AbortError' ? 'Toka API request timed out.' : 'Unable to reach Toka API.',
+      data: {},
+    });
+  }
+});
+
+app.post('/api/alipay/payment/close', validateBaseRequest, async (req, res) => {
+  if (!validateAccessToken(req.body)) {
+    return res.status(400).json({
+      success: false,
+      statusCode: 400,
+      message: 'accessToken is required.',
+      data: {},
+    });
+  }
+
+  if (!req.body.paymentId) {
+    return res.status(400).json({
+      success: false,
+      statusCode: 400,
+      message: 'paymentId is required.',
+      data: {},
+    });
+  }
+
+  try {
+    const result = await request('/v1/payment/close', {
+      body: { paymentId: req.body.paymentId },
+      accessToken: req.body.accessToken,
+    });
+    return forwardResult(res, result);
+  } catch (error) {
+    return res.status(502).json({
+      success: false,
+      statusCode: 502,
+      message: error.name === 'AbortError' ? 'Toka API request timed out.' : 'Unable to reach Toka API.',
+      data: {},
+    });
+  }
+});
+
+app.post('/api/alipay/payment/refund', validateBaseRequest, async (req, res) => {
+  if (!validateAccessToken(req.body)) {
+    return res.status(400).json({
+      success: false,
+      statusCode: 400,
+      message: 'accessToken is required.',
+      data: {},
+    });
+  }
+
+  if (!req.body.userId || !req.body.paymentId || !validatePaymentAmount(req.body.refundAmount)) {
+    return res.status(400).json({
+      success: false,
+      statusCode: 400,
+      message: 'userId, paymentId and refundAmount are required.',
+      data: {},
+    });
+  }
+
+  try {
+    const result = await request('/v1/payment/refund', {
+      body: {
+        userId: req.body.userId,
+        paymentId: req.body.paymentId,
+        refundAmount: req.body.refundAmount,
+      },
+      accessToken: req.body.accessToken,
+      merchantCode: req.body.merchantCode,
+    });
+    return forwardResult(res, result);
+  } catch (error) {
+    return res.status(502).json({
+      success: false,
+      statusCode: 502,
+      message: error.name === 'AbortError' ? 'Toka API request timed out.' : 'Unable to reach Toka API.',
+      data: {},
+    });
+  }
+});
+
+app.post('/api/alipay/payment/inquiry-refund', validateBaseRequest, async (req, res) => {
+  if (!validateAccessToken(req.body)) {
+    return res.status(400).json({
+      success: false,
+      statusCode: 400,
+      message: 'accessToken is required.',
+      data: {},
+    });
+  }
+
+  if (!req.body.refundId) {
+    return res.status(400).json({
+      success: false,
+      statusCode: 400,
+      message: 'refundId is required.',
+      data: {},
+    });
+  }
+
+  try {
+    const result = await request('/v1/payment/inquiry-refund', {
+      body: { refundId: req.body.refundId },
+      accessToken: req.body.accessToken,
+    });
+    return forwardResult(res, result);
+  } catch (error) {
+    return res.status(502).json({
+      success: false,
+      statusCode: 502,
+      message: error.name === 'AbortError' ? 'Toka API request timed out.' : 'Unable to reach Toka API.',
+      data: {},
+    });
+  }
+});
+
+app.use((_req, res) => {
+  res.status(404).json({
+    success: false,
+    statusCode: 404,
+    message: 'Route not found.',
+    data: {},
+  });
+});
+
+app.listen(port, () => {
+  const config = getConfig();
+  console.log(`Backend listening on http://localhost:${port}`);
+  console.log(`Proxying Toka requests to ${config.baseUrl}`);
 });
