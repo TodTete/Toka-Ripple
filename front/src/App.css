@@ -173,6 +173,29 @@ input {
   color: #1c1124;
 }
 
+.home-tab-nav {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.tab-btn {
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-dim);
+  border-radius: 999px;
+  padding: 8px 12px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.tab-btn.active {
+  background: linear-gradient(140deg, var(--accent), #ff7a00);
+  color: #1c1124;
+  border-color: transparent;
+}
+
 .icon-btn {
   width: 34px;
   height: 34px;
@@ -321,6 +344,11 @@ input {
   color: #ffe2b5;
 }
 
+.card-author {
+  margin-top: 0;
+  font-size: 0.78rem;
+}
+
 .comment-area {
   margin-top: 8px;
   border-top: 1px dashed rgba(255, 255, 255, 0.18);
@@ -460,6 +488,47 @@ input {
   border: 0;
 }
 
+.feed-hero-card {
+  padding: 10px;
+}
+
+.feed-hero-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 74px;
+  gap: 10px;
+  align-items: stretch;
+}
+
+.video-main-wrap {
+  display: grid;
+  gap: 8px;
+}
+
+.feed-side-actions {
+  display: grid;
+  grid-auto-rows: min-content;
+  gap: 8px;
+  align-content: start;
+}
+
+.feed-icon-btn {
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text);
+  border-radius: 12px;
+  min-height: 62px;
+  padding: 8px 6px;
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  cursor: pointer;
+}
+
+.feed-icon-btn span {
+  font-size: 0.69rem;
+  line-height: 1.1;
+}
+
 .podium-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -581,6 +650,60 @@ input {
 .profile-grid span {
   color: var(--text-dim);
   font-size: 0.75rem;
+}
+
+.profile-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.stat-item {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 9px;
+  display: grid;
+  gap: 4px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.stat-item span {
+  color: var(--text-dim);
+  font-size: 0.74rem;
+}
+
+.mini-podium {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.mini-podium-item {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 8px;
+  display: grid;
+  gap: 4px;
+  text-align: center;
+}
+
+.rank-badge {
+  color: #ffd38d;
+  font-size: 0.74rem;
+  font-family: 'Sora', sans-serif;
+}
+
+.stat-value {
+  margin: 0;
+  font-family: 'Sora', sans-serif;
+  font-size: 1.4rem;
+  color: var(--text);
+}
+
+.text-muted {
+  margin-top: 4px;
+  color: var(--text-dim);
 }
 
 .settings-grid label {

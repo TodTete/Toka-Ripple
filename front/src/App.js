@@ -6,7 +6,6 @@ import {
   House,
   LockKeyhole,
   MessageSquare,
-  PlaySquare,
   ShieldCheck,
   Sparkles,
   Trophy,
@@ -176,12 +175,16 @@ const TRIVIA_QUESTIONS = [
 ];
 
 const NAV_ITEMS = [
-  { id: 'home', label: 'Inicio', icon: House },
-  { id: 'feed', label: 'Feed', icon: PlaySquare },
+  { id: 'inicio', label: 'Inicio', icon: House },
   { id: 'reto', label: 'Reto', icon: Sparkles },
   { id: 'ranking', label: 'Ranking', icon: Trophy },
   { id: 'wallet', label: 'Wallet', icon: Wallet },
   { id: 'perfil', label: 'Perfil', icon: CircleUserRound },
+];
+
+const HOME_TABS = [
+  { id: 'wall', label: 'Muro' },
+  { id: 'feed', label: 'Feed' },
 ];
 
 function safeParse(value, fallback) {
@@ -313,8 +316,9 @@ async function collectProfileAuthCodes(primaryAuthCode) {
 
 function App() {
   const [backendConfig, setBackendConfig] = useState(null);
-  const [screen, setScreen] = useState('home');
+  const [screen, setScreen] = useState('inicio');
   const [showNotifications, setShowNotifications] = useState(false);
+  const [homeTab, setHomeTab] = useState('wall');
   const [loadingAction, setLoadingAction] = useState('');
   const [message, setMessage] = useState({
     title: 'Base lista',
@@ -331,8 +335,7 @@ function App() {
   const [giftStock, setGiftStock] = useState(() => GIFTS_CATALOG.reduce((acc, gift) => ({ ...acc, [gift.id]: gift.stock }), {}));
   const [notifications, setNotifications] = useState(() => [{ id: SYSTEM_NOTIFICATION_ID, title: 'Base lista', detail: 'App lista con auth, wallet, retos, feed y perfil conectados.', read: false, kind: 'system' }, ...NOTIFICATIONS_BASE]);
   const [wallState, setWallState] = useState(() => WALL_POSTS.reduce((acc, post) => ({ ...acc, [post.id]: { liked: false, likes: post.likes, comments: [...post.comments], draft: '', showComments: false } }), {}));
-  const [feedItems, setFeedItems] = useState(() => Array.from({ length: 10 }, (_, index) => createFeedItem(index)));
-  const [hasMoreFeed, setHasMoreFeed] = useState(true);
+  const [feedItems] = useState(() => Array.from({ length: 10 }, (_, index) => createFeedItem(index)));
   const [pendingTokadropUser, setPendingTokadropUser] = useState(null);
   const [settingsState, setSettingsState] = useState({ notificationsEnabled: true, privateProfile: false, compactMode: false, profileName: '', profileEmail: '', profilePhone: '' });
   const [triviaState, setTriviaState] = useState({ active: false, pool: shuffle(TRIVIA_QUESTIONS.map((item) => item.id)), roundQuestions: [], questionIndex: 0, selectedOption: null, roundScore: 0, roundsCompleted: 0 });
@@ -429,25 +432,6 @@ function App() {
       setConfettiBurst(null);
       confettiTimerRef.current = null;
     }, 2400);
-  }
-
-  function loadMoreFeed() {
-    if (!hasMoreFeed) {
-      return;
-    }
-    const nextItems = Array.from({ length: 7 }, (_, index) => createFeedItem(feedItems.length + index));
-    setFeedItems((current) => [...current, ...nextItems]);
-    if (feedItems.length + nextItems.length >= 60) {
-      setHasMoreFeed(false);
-    }
-  }
-
-  function handleFeedScroll(event) {
-    const target = event.currentTarget;
-    const remaining = target.scrollHeight - target.scrollTop - target.clientHeight;
-    if (remaining < 180) {
-      loadMoreFeed();
-    }
   }
 
   function toggleWallLike(postId) {
@@ -712,13 +696,15 @@ function App() {
     }
   }
 
-  function renderHomeScreen() {
+  function renderInicioScreen() {
+    const activeFeedItem = feedItems[0] || null;
+
     return (
       <div className="screen-content screen-enter">
         <div className="home-top-row">
           <div className="home-title">
-            <strong>Muro</strong>
-            <span>Comunidad activa</span>
+            <strong>Inicio</strong>
+            <span>{homeTab === 'wall' ? 'Comunidad activa' : 'Video destacado'}</span>
           </div>
           <button type="button" className="icon-btn" onClick={() => setShowNotifications(true)}>
             <Bell size={16} />
@@ -727,76 +713,90 @@ function App() {
           </button>
         </div>
 
-        <div className="stack-list">
-          {WALL_POSTS.map((post) => {
-            const state = wallState[post.id];
-            return (
-              <article key={post.id} className="glass-card floating-card">
-                <div className="card-kicker">{post.author}</div>
-                <h3>{post.title}</h3>
-                <p>{post.body}</p>
-                <div className="wall-actions">
-                  <button type="button" className={`react-btn ${state?.liked ? 'liked' : ''}`} onClick={() => toggleWallLike(post.id)}>
-                    <Sparkles size={14} />
-                    {state?.likes || 0}
-                  </button>
-                  <button type="button" className="react-btn" onClick={() => toggleWallComments(post.id)}>
-                    <MessageSquare size={14} />
-                    {state?.comments?.length || 0}
-                  </button>
-                </div>
-                {state?.showComments ? (
-                  <div className="comment-area">
-                    <div className="comment-list">
-                      {state.comments.map((comment, index) => (
-                        <p key={`${post.id}-c-${index}`} className="comment-item">{comment}</p>
-                      ))}
-                    </div>
-                    <div className="comment-form">
-                      <input value={state.draft} onChange={(event) => updateWallCommentDraft(post.id, event.target.value)} placeholder="Escribe un comentario" />
-                      <button type="button" onClick={() => submitWallComment(post.id)}>Enviar</button>
-                    </div>
-                  </div>
-                ) : null}
-              </article>
-            );
-          })}
+        <div className="home-tab-nav">
+          {HOME_TABS.map((tab) => (
+            <button key={tab.id} type="button" className={`tab-btn ${homeTab === tab.id ? 'active' : ''}`} onClick={() => setHomeTab(tab.id)}>
+              {tab.label}
+            </button>
+          ))}
         </div>
-      </div>
-    );
-  }
 
-  function renderFeedScreen() {
-    return (
-      <div className="screen-content screen-enter">
-        <div className="section-title-row">
-          <h2>Feed</h2>
-          <span>Videos y Tokadrop</span>
-        </div>
-        <article className="glass-card floating-card">
-          <div className="card-kicker">Feed infinito con YouTube iframe</div>
-          <div className="infinite-feed" onScroll={handleFeedScroll}>
-            {feedItems.map((item) => (
-              <div key={item.id} className="video-card">
-                <div className="video-header">
-                  <div>
-                    <strong>{item.author.name}</strong>
-                    <span>{item.title}</span>
+        {homeTab === 'wall' ? (
+          <div className="stack-list">
+            {WALL_POSTS.map((post) => {
+              const state = wallState[post.id];
+              return (
+                <article key={post.id} className="glass-card floating-card">
+                  <h3>{post.title}</h3>
+                  <p className="card-author">{post.author}</p>
+                  <p>{post.body}</p>
+                  <div className="wall-actions">
+                    <button type="button" className={`react-btn ${state?.liked ? 'liked' : ''}`} onClick={() => toggleWallLike(post.id)}>
+                      <Sparkles size={14} />
+                      {state?.likes || 0}
+                    </button>
+                    <button type="button" className="react-btn" onClick={() => toggleWallComments(post.id)}>
+                      <MessageSquare size={14} />
+                      {state?.comments?.length || 0}
+                    </button>
                   </div>
-                  <button type="button" className="tokadrop-btn" onClick={() => openTokadrop(item.author)}>Tokadrop</button>
+                  {state?.showComments ? (
+                    <div className="comment-area">
+                      <div className="comment-list">
+                        {state.comments.map((comment, index) => (
+                          <p key={`${post.id}-c-${index}`} className="comment-item">{comment}</p>
+                        ))}
+                      </div>
+                      <div className="comment-form">
+                        <input value={state.draft} onChange={(event) => updateWallCommentDraft(post.id, event.target.value)} placeholder="Escribe un comentario" />
+                        <button type="button" onClick={() => submitWallComment(post.id)}>Enviar</button>
+                      </div>
+                    </div>
+                  ) : null}
+                </article>
+              );
+            })}
+          </div>
+        ) : (
+          <article className="glass-card floating-card feed-hero-card">
+            {!activeFeedItem ? (
+              <p className="feed-end">No hay contenido en el feed.</p>
+            ) : (
+              <div className="feed-hero-layout">
+                <div className="video-main-wrap">
+                  <div className="video-header">
+                    <div>
+                      <strong>{activeFeedItem.author.name}</strong>
+                      <span>{activeFeedItem.title}</span>
+                    </div>
+                  </div>
+                  <div className="video-frame-wrap">
+                    <iframe title={activeFeedItem.id} src={`https://www.youtube.com/embed/${activeFeedItem.videoId}`} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerPolicy="strict-origin-when-cross-origin" allowFullScreen />
+                  </div>
                 </div>
-                <div className="video-frame-wrap">
-                  <iframe title={item.id} src={`https://www.youtube.com/embed/${item.videoId}`} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerPolicy="strict-origin-when-cross-origin" allowFullScreen />
-                </div>
-                <div className="video-meta">
-                  <span>{item.likes} likes</span>
-                  <span>{item.comments} comentarios</span>
+
+                <div className="feed-side-actions">
+                  <button type="button" className="feed-icon-btn" aria-label="Like">
+                    <Sparkles size={16} />
+                    <span>{activeFeedItem.likes}</span>
+                  </button>
+                  <button type="button" className="feed-icon-btn" aria-label="Comentarios">
+                    <MessageSquare size={16} />
+                    <span>{activeFeedItem.comments}</span>
+                  </button>
+                  <button type="button" className="feed-icon-btn" aria-label="Tokadrop" onClick={() => openTokadrop(activeFeedItem.author)}>
+                    <Gift size={16} />
+                    <span>Tokadrop</span>
+                  </button>
+                  <button type="button" className="feed-icon-btn" aria-label="Perfil" onClick={() => setScreen('perfil')}>
+                    <CircleUserRound size={16} />
+                    <span>Perfil</span>
+                  </button>
                 </div>
               </div>
-            ))}
-            <p className="feed-end">{hasMoreFeed ? 'Desliza para cargar mas contenido' : 'No hay mas contenido por ahora'}</p>
-          </div>
-        </article>
+            )}
+          </article>
+        )}
       </div>
     );
   }
@@ -878,6 +878,8 @@ function App() {
   function renderRankingScreen() {
     const podium = ranking.slice(0, 3);
     const rest = ranking.slice(3);
+    const orderedPodium = [podium[1], podium[0], podium[2]].filter(Boolean);
+
     return (
       <div className="screen-content screen-enter">
         <div className="section-title-row">
@@ -886,13 +888,16 @@ function App() {
         </div>
         <article className="glass-card floating-card">
           <div className="podium-grid">
-            {podium.map((entry, index) => (
-              <div key={entry.id} className={`podium-item p-${index + 1}`}>
-                <div className="podium-rank">#{index + 1}</div>
-                <strong>{entry.name}</strong>
-                <span>{entry.points} pts</span>
-              </div>
-            ))}
+            {orderedPodium.map((entry, index) => {
+              const place = index === 0 ? 2 : index === 1 ? 1 : 3;
+              return (
+                <div key={entry.id} className={`podium-item p-${place}`}>
+                  <div className="podium-rank">#{place}</div>
+                  <strong>{entry.name}</strong>
+                  <span>{entry.points} pts</span>
+                </div>
+              );
+            })}
           </div>
           <div className="rank-list">
             {rest.map((entry) => (
@@ -944,7 +949,7 @@ function App() {
 
         <article className="glass-card floating-card">
           <div className="card-kicker">Regalos</div>
-          <p className="wallet-intro">Convierte puntos en valor real: suscripciones, tarjetas digitales y apoyos de wallet para mover saldo con mÃ¡s sentido.</p>
+          <p className="wallet-intro">Convierte puntos en valor real: suscripciones, tarjetas digitales y apoyos de wallet para mover saldo con mas sentido.</p>
           <div className="gifts-list">
             {GIFTS_CATALOG.map((gift) => (
               <div key={gift.id} className="gift-row">
@@ -963,30 +968,60 @@ function App() {
   }
 
   function renderPerfilScreen() {
+    const myRank = ranking.find((r) => r.isMe);
+    const tokadrops = notifications.filter((item) => /tokadrop/i.test(item.title || '')).length;
+
     return (
       <div className="screen-content screen-enter">
         <div className="section-title-row">
           <h2>Perfil</h2>
-          <span>Ajustes</span>
+          <span>Tu actividad</span>
         </div>
         <article className="glass-card floating-card">
           <div className="profile-head">
             <div className="avatar">TR</div>
             <div>
               <strong>{profileDisplay.name}</strong>
-              <p>{profileDisplay.email !== 'Agregar email' ? profileDisplay.email : profileDisplay.phone}</p>
+              <p>{walletState.streak} dias de racha</p>
             </div>
           </div>
-          <div className="profile-grid">
-            <div><span>ID</span><strong>{profileDisplay.id}</strong></div>
-            <div><span>Email</span><strong>{profileDisplay.email}</strong></div>
-            <div><span>Telefono</span><strong>{profileDisplay.phone}</strong></div>
-            <div><span>Token</span><strong>{profileDisplay.token}</strong></div>
+          <div className="profile-stats">
+            <div className="stat-item">
+              <span>Ranking</span>
+              <strong>#{myRank?.rank || '-'}</strong>
+            </div>
+            <div className="stat-item">
+              <span>Racha</span>
+              <strong>{walletState.streak} dias</strong>
+            </div>
+            <div className="stat-item">
+              <span>Puntos</span>
+              <strong>{walletState.points}</strong>
+            </div>
           </div>
         </article>
 
         <article className="glass-card floating-card">
-          <div className="card-kicker">Ajustes</div>
+          <h3>Previsualizacion de ranking</h3>
+          <div className="mini-podium">
+            {ranking.slice(0, 3).map((entry) => (
+              <div key={entry.id} className="mini-podium-item">
+                <span className="rank-badge">#{entry.rank}</span>
+                <strong>{entry.name}</strong>
+                <p>{entry.points} pts</p>
+              </div>
+            ))}
+          </div>
+        </article>
+
+        <article className="glass-card floating-card">
+          <h3>Tokadrop obtenidos</h3>
+          <p className="stat-value">{tokadrops}</p>
+          <p className="text-muted">Regalos enviados a otros usuarios</p>
+        </article>
+
+        <article className="glass-card floating-card">
+          <h3>Ajustes</h3>
           <div className="settings-grid">
             <label><span>Notificaciones</span><input type="checkbox" checked={settingsState.notificationsEnabled} onChange={(event) => setSettingsState((current) => ({ ...current, notificationsEnabled: event.target.checked }))} /></label>
             <label><span>Perfil privado</span><input type="checkbox" checked={settingsState.privateProfile} onChange={(event) => setSettingsState((current) => ({ ...current, privateProfile: event.target.checked }))} /></label>
@@ -994,8 +1029,6 @@ function App() {
           </div>
           <div className="form-grid">
             <label>Nombre<input value={settingsState.profileName} placeholder="Agregar nombre" onChange={(event) => setSettingsState((current) => ({ ...current, profileName: event.target.value }))} /></label>
-            <label>Email<input value={settingsState.profileEmail} placeholder="Agregar email" onChange={(event) => setSettingsState((current) => ({ ...current, profileEmail: event.target.value }))} /></label>
-            <label>Telefono<input value={settingsState.profilePhone} placeholder="Agregar telefono" onChange={(event) => setSettingsState((current) => ({ ...current, profilePhone: event.target.value }))} /></label>
           </div>
           <button type="button" onClick={() => pushActivity('Ajustes guardados', 'Configuracion actualizada.')}>Guardar ajustes</button>
         </article>
@@ -1064,8 +1097,8 @@ function App() {
       </header>
 
       <section className="screen-wrap">
-        {screen === 'home' ? renderHomeScreen() : null}
-        {screen === 'feed' ? renderFeedScreen() : null}
+        {screen === 'inicio' ? renderInicioScreen() : null}
+        
         {screen === 'reto' ? renderRetoScreen() : null}
         {screen === 'ranking' ? renderRankingScreen() : null}
         {screen === 'wallet' ? renderWalletScreen() : null}
@@ -1078,8 +1111,8 @@ function App() {
           <h3>{message.title}</h3>
           <p>{message.detail}</p>
           <div className="diagnostic-actions">
-            <button type="button" className="soft-btn" onClick={() => setShowNotifications(true)}>Abrir buzÃ³n</button>
-            <button type="button" className="soft-btn" onClick={() => setMessage({ title: 'Resumen tecnico', detail: 'El resumen actual se movio al buzÃ³n de notificaciones.' })}>Refrescar resumen</button>
+            <button type="button" className="soft-btn" onClick={() => setShowNotifications(true)}>Abrir buzon</button>
+            <button type="button" className="soft-btn" onClick={() => setMessage({ title: 'Resumen tecnico', detail: 'El resumen actual se movio al buzon de notificaciones.' })}>Refrescar resumen</button>
           </div>
           {bridgeDiagnostics ? <pre>{bridgeDiagnostics}</pre> : null}
         </article>
@@ -1103,7 +1136,7 @@ function App() {
             <div className="overlay-head">
               <div>
                 <h3>Notificaciones</h3>
-                <span>{notifications.length ? `${notifications.length} en el buzÃ³n` : 'BuzÃ³n vacÃ­o'}</span>
+                <span>{notifications.length ? `${notifications.length} en el buzon` : 'Buzon vacio'}</span>
               </div>
               <button type="button" className="icon-btn" onClick={() => setShowNotifications(false)}>
                 <X size={16} />
@@ -1112,7 +1145,7 @@ function App() {
 
             <div className="overlay-actions">
               <button type="button" className="soft-btn" onClick={markAllNotificationsRead}>Marcar todas</button>
-              <button type="button" className="soft-btn danger-soft" onClick={clearNotificationInbox}>Vaciar buzÃ³n</button>
+              <button type="button" className="soft-btn danger-soft" onClick={clearNotificationInbox}>Vaciar buzon</button>
             </div>
 
             <div className="stack-list notification-list">
