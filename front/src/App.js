@@ -4,6 +4,7 @@ import {
   Activity,
   ArrowRight,
   BadgeCheck,
+  Bell,
   CircleUserRound,
   CreditCard,
   House,
@@ -12,6 +13,7 @@ import {
   RefreshCw,
   ScrollText,
   ShieldCheck,
+  Sparkles,
   TerminalSquare,
   Trophy,
   Wallet,
@@ -84,10 +86,33 @@ const RANKING_SEED = [
   { id: 'rk-4', name: 'Lucia P', points: 3300, streak: 16 },
 ];
 
+const ALERT_ITEMS = [
+  {
+    id: 'al-1',
+    title: 'Racha activa',
+    detail: 'Llevas 7 dias seguidos. Mantente activo para sumar bonus.',
+    time: 'Hace 8 min',
+  },
+  {
+    id: 'al-2',
+    title: 'Orden lista',
+    detail: 'Tu flujo de pago se puede consultar desde Wallet.',
+    time: 'Hace 35 min',
+  },
+  {
+    id: 'al-3',
+    title: 'Perfil sincronizable',
+    detail: 'Si faltan datos de contacto, usa Sincronizar perfil.',
+    time: 'Hace 1 h',
+  },
+];
+
 const NAV_ITEMS = [
   { id: 'home', label: 'Inicio', icon: House },
+  { id: 'retos', label: 'Retos', icon: Sparkles },
   { id: 'feed', label: 'Feed', icon: MessageSquareText },
   { id: 'ranking', label: 'Ranking', icon: Trophy },
+  { id: 'alerts', label: 'Alertas', icon: Bell },
   { id: 'wallet', label: 'Wallet', icon: Wallet },
   { id: 'profile', label: 'Perfil', icon: CircleUserRound },
 ];
@@ -303,6 +328,36 @@ function App() {
 
     return [...RANKING_SEED, me].sort((a, b) => b.points - a.points);
   }, [userInfo, walletState.points, walletState.streak]);
+
+  const profileDisplay = useMemo(() => {
+    const fullName =
+      userInfo?.fullName ||
+      userInfo?.nickName ||
+      userInfo?.nickname ||
+      userInfo?.displayName ||
+      '';
+    const email =
+      userInfo?.email ||
+      userInfo?.mail ||
+      userInfo?.contactEmail ||
+      userInfo?.personalEmail ||
+      '';
+    const phone =
+      userInfo?.mobilePhone ||
+      userInfo?.phoneNumber ||
+      userInfo?.phone ||
+      userInfo?.cellphone ||
+      '';
+    const id = userInfo?.userId || userInfo?.id || userId || '';
+
+    return {
+      name: fullName || id || 'Agregar nombre',
+      email: email || 'Agregar email',
+      phone: phone || 'Agregar telefono',
+      id: id || 'Agregar identificador',
+      token: accessToken ? 'Activo' : 'Agregar token',
+    };
+  }, [accessToken, userId, userInfo]);
 
   function pushActivity(title, detail) {
     setActivityLog((current) => [{ id: `${Date.now()}-${current.length}`, title, detail }, ...current].slice(0, 6));
@@ -620,6 +675,12 @@ function App() {
               Aceptar reto
             </button>
           </div>
+
+          <div className="story-row">
+            <div className="story-chip">Top 10 semanal</div>
+            <div className="story-chip">Nuevos retos</div>
+            <div className="story-chip">Wallet pro</div>
+          </div>
         </article>
 
         <article className="surface-card session-card">
@@ -649,6 +710,48 @@ function App() {
           </div>
         </article>
       </>
+    );
+  }
+
+  function renderRetosView() {
+    return (
+      <article className="surface-card">
+        <div className="card-topline">Retos diarios</div>
+        <h3>Selecciona y activa tu siguiente reto</h3>
+        <div className="challenge-list">
+          {DAILY_CHALLENGES.map((challenge) => {
+            const isActive = challenge.id === walletState.selectedChallengeId;
+            const isDone = walletState.completedChallengeIds.includes(challenge.id);
+            return (
+              <div key={challenge.id} className={`challenge-card ${isActive ? 'is-active' : ''}`}>
+                <div>
+                  <strong>{challenge.title}</strong>
+                  <p>{challenge.description}</p>
+                  <span className="challenge-reward">{challenge.reward}</span>
+                </div>
+                <div className="challenge-actions">
+                  <span className={`challenge-state ${isDone ? 'done' : 'pending'}`}>
+                    {isDone ? 'Completado' : 'Pendiente'}
+                  </span>
+                  <button
+                    type="button"
+                    className="btn-soft"
+                    onClick={() =>
+                      setWalletState((current) => ({
+                        ...current,
+                        selectedChallengeId: challenge.id,
+                        challengeAccepted: false,
+                      }))
+                    }
+                  >
+                    Seleccionar
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </article>
     );
   }
 
@@ -684,6 +787,26 @@ function App() {
                 <span>{entry.streak} dias de racha</span>
               </div>
               <div className="rank-points">{entry.points}</div>
+            </div>
+          ))}
+        </div>
+      </article>
+    );
+  }
+
+  function renderAlertsView() {
+    return (
+      <article className="surface-card">
+        <div className="card-topline">Alertas</div>
+        <h3>Actividad importante</h3>
+        <div className="alerts-list">
+          {ALERT_ITEMS.map((item) => (
+            <div key={item.id} className="alert-card">
+              <div>
+                <strong>{item.title}</strong>
+                <p>{item.detail}</p>
+              </div>
+              <span>{item.time}</span>
             </div>
           ))}
         </div>
@@ -795,27 +918,27 @@ function App() {
           <div className="profile-heading">
             <CircleUserRound size={22} />
             <div>
-              <strong>{userInfo?.fullName || userInfo?.nickName || userInfo?.userId || userId || 'Perfil no sincronizado'}</strong>
-              <span>{userInfo?.email || userInfo?.mobilePhone || 'Sin email o telefono disponible'}</span>
+              <strong>{profileDisplay.name}</strong>
+              <span>{profileDisplay.email !== 'Agregar email' ? profileDisplay.email : profileDisplay.phone}</span>
             </div>
           </div>
 
           <div className="profile-grid">
             <div>
               <span>ID</span>
-              <strong>{userInfo?.userId || userId || 'No disponible'}</strong>
+              <strong>{profileDisplay.id}</strong>
             </div>
             <div>
               <span>Email</span>
-              <strong>{userInfo?.email || 'No disponible'}</strong>
+              <strong>{profileDisplay.email}</strong>
             </div>
             <div>
               <span>Telefono</span>
-              <strong>{userInfo?.mobilePhone || 'No disponible'}</strong>
+              <strong>{profileDisplay.phone}</strong>
             </div>
             <div>
               <span>Token</span>
-              <strong>{accessToken ? 'Activo' : 'No disponible'}</strong>
+              <strong>{profileDisplay.token}</strong>
             </div>
           </div>
         </article>
@@ -911,8 +1034,10 @@ function App() {
             transition={{ duration: 0.2, ease: 'easeOut' }}
           >
             {activeView === 'home' ? renderHomeView() : null}
+            {activeView === 'retos' ? renderRetosView() : null}
             {activeView === 'feed' ? renderFeedView() : null}
             {activeView === 'ranking' ? renderRankingView() : null}
+            {activeView === 'alerts' ? renderAlertsView() : null}
             {activeView === 'wallet' ? renderWalletView() : null}
             {activeView === 'profile' ? renderProfileView() : null}
           </motion.section>

@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Sora:wght@500;600;700;800&display=swap');
+
 :root {
   --bg0: #09080f;
   --bg1: #11101f;
@@ -9,6 +11,7 @@
   --accent-a: #ffb04d;
   --accent-b: #ff6f4d;
   --accent-c: #32d9c4;
+  --accent-d: #8f7bff;
   --ok-bg: rgba(82, 217, 145, 0.18);
   --ok-bd: rgba(82, 217, 145, 0.45);
   --wait-bg: rgba(255, 184, 87, 0.18);
@@ -139,6 +142,12 @@ body,
   padding: 16px;
 }
 
+.hero-card {
+  background:
+    radial-gradient(circle at 80% 0%, rgba(50, 217, 196, 0.2), transparent 38%),
+    linear-gradient(150deg, rgba(255, 255, 255, 0.08), var(--card));
+}
+
 .surface-card p,
 .muted-copy,
 .session-list span,
@@ -152,6 +161,21 @@ body,
 .metric-grid {
   grid-template-columns: repeat(3, minmax(0, 1fr));
   margin: 14px 0;
+}
+
+.story-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.story-chip {
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 999px;
+  font-size: 0.74rem;
+  padding: 6px 10px;
+  color: #efe8ff;
+  background: linear-gradient(120deg, rgba(143, 123, 255, 0.25), rgba(50, 217, 196, 0.2));
 }
 
 .metric-grid > div {
@@ -219,6 +243,75 @@ body,
 .rank-points {
   font-family: 'Sora', 'Segoe UI', sans-serif;
   font-weight: 700;
+}
+
+.challenge-list,
+.alerts-list {
+  display: grid;
+  gap: 10px;
+}
+
+.challenge-card,
+.alert-card {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.03);
+  padding: 12px;
+  display: grid;
+  gap: 8px;
+}
+
+.challenge-card.is-active {
+  border-color: rgba(255, 176, 77, 0.65);
+  box-shadow: inset 0 0 0 1px rgba(255, 176, 77, 0.3);
+}
+
+.challenge-card p,
+.alert-card p {
+  margin: 6px 0 0;
+  color: var(--copy-dim);
+}
+
+.challenge-reward {
+  color: #ffd183;
+  font-size: 0.83rem;
+  font-weight: 700;
+}
+
+.challenge-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.challenge-state {
+  padding: 6px 8px;
+  border-radius: 999px;
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.challenge-state.done {
+  color: #aff6cb;
+  border: 1px solid var(--ok-bd);
+  background: var(--ok-bg);
+}
+
+.challenge-state.pending {
+  color: #ffdca9;
+  border: 1px solid var(--wait-bd);
+  background: var(--wait-bg);
+}
+
+.alert-card {
+  grid-template-columns: 1fr auto;
+  align-items: center;
+}
+
+.alert-card span {
+  color: #d6caef;
+  font-size: 0.78rem;
 }
 
 .profile-heading {
@@ -342,7 +435,7 @@ button:disabled {
   transform: translateX(-50%);
   bottom: 10px;
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  display: flex;
   gap: 7px;
   padding: 8px;
   border: 1px solid rgba(255, 255, 255, 0.15);
@@ -350,6 +443,8 @@ button:disabled {
   background: rgba(10, 9, 20, 0.86);
   backdrop-filter: blur(10px);
   z-index: 20;
+  overflow-x: auto;
+  scrollbar-width: none;
 }
 
 .bottom-nav button {
@@ -363,6 +458,7 @@ button:disabled {
   gap: 4px;
   font-size: 0.7rem;
   font-weight: 600;
+  min-width: 64px;
 }
 
 .bottom-nav button.active {
