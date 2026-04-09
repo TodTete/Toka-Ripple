@@ -782,9 +782,6 @@ function App() {
               <button type="button" className="secondary" onClick={handleAuthorizeAccess} disabled={loadingAction === 'authorize'}>
                 Sincronizar perfil
               </button>
-              <button type="button" onClick={handleAuthorizeAndPay} disabled={loadingAction === 'authorize-pay'}>
-                Crear pago
-              </button>
               <button
                 type="button"
                 className="secondary"
