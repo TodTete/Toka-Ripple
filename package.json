@@ -1,41 +1,27 @@
 {
-  "name": "front",
-  "version": "0.1.0",
+  "name": "toka-ripple",
+  "version": "1.0.0",
   "private": true,
-  "dependencies": {
-    "@auth0/auth0-react": "^2.16.1",
-    "axios": "^1.14.0",
-    "cra-template-pwa": "2.0.0",
-    "framer-motion": "^12.38.0",
-    "lucide-react": "^1.7.0",
-    "react": "^19.2.4",
-    "react-dom": "^19.2.4",
-    "react-router-dom": "^7.14.0",
-    "react-scripts": "5.0.1",
-    "web-vitals": "^5.2.0"
-  },
+  "description": "Toka Ripple fullstack app for Railway deployment.",
+  "main": "back/src/index.js",
   "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
-    "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "install:back": "npm install --prefix back",
+    "install:front": "npm install --prefix front",
+    "build:front": "npm run build --prefix front",
+    "build": "npm run build:front",
+    "postinstall": "npm run install:back && npm run install:front && npm run build:front",
+    "start": "node back/src/index.js"
   },
-  "eslintConfig": {
-    "extends": [
-      "react-app",
-      "react-app/jest"
-    ]
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/TodTete/Toka-Ripple.git"
   },
-  "browserslist": {
-    "production": [
-      ">0.2%",
-      "not dead",
-      "not op_mini all"
-    ],
-    "development": [
-      "last 1 chrome version",
-      "last 1 firefox version",
-      "last 1 safari version"
-    ]
-  }
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/TodTete/Toka-Ripple/issues"
+  },
+  "homepage": "https://github.com/TodTete/Toka-Ripple#readme"
 }
