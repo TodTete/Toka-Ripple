@@ -67,9 +67,15 @@ function hasBridgeError(response) {
   );
 }
 
-function callBridgeByMethod(method, params, timeoutMs = 15000) {
+function listAvailableBridges() {
+  return [
+    { name: 'AlipayJSBridge', bridge: window.AlipayJSBridge },
+    { name: 'my', bridge: window.my },
+  ].filter((item) => Boolean(item.bridge));
+}
+
+function callBridgeByMethodOn(bridgeName, bridge, method, params, timeoutMs = 15000) {
   return new Promise((resolve, reject) => {
-    const bridge = window.AlipayJSBridge || window.my;
     let settled = false;
 
     const finish = (handler, value) => {
@@ -85,29 +91,13 @@ function callBridgeByMethod(method, params, timeoutMs = 15000) {
       finish(
         reject,
         new Error(
-          `Bridge method ${method} timed out after ${timeoutMs}ms. The container did not return success/fail callback.`
+          `Bridge ${bridgeName} method ${method} timed out after ${timeoutMs}ms. The container did not return success/fail callback.`
         )
       );
     }, timeoutMs);
 
-    if (!bridge) {
-      finish(reject, new Error('Alipay bridge is not available.'));
-      return;
-    }
-
     if (typeof bridge.call === 'function') {
-      const payload = Object.assign({}, params, {
-        success: (response) => {
-          if (hasBridgeError(response)) {
-            finish(reject, normalizeBridgeError(method, response));
-            return;
-          }
-          finish(resolve, response);
-        },
-        fail: (response) => finish(reject, normalizeBridgeError(method, response)),
-      });
-
-      bridge.call(method, payload, (response) => {
+      bridge.call(method, params, (response) => {
         if (hasBridgeError(response)) {
           finish(reject, normalizeBridgeError(method, response));
           return;
@@ -132,10 +122,30 @@ function callBridgeByMethod(method, params, timeoutMs = 15000) {
     finish(
       reject,
       new Error(
-        `Bridge method ${method} is not available. bridge.call=${typeof bridge.call === 'function'} availableKeys=${availableKeys}`
+        `Bridge ${bridgeName} method ${method} is not available. bridge.call=${typeof bridge.call === 'function'} availableKeys=${availableKeys}`
       )
     );
   });
+}
+
+async function callBridgeByMethod(method, params, timeoutMs = 15000) {
+  const bridges = listAvailableBridges();
+
+  if (bridges.length === 0) {
+    throw new Error('Alipay bridge is not available.');
+  }
+
+  const failures = [];
+
+  for (const item of bridges) {
+    try {
+      return await callBridgeByMethodOn(item.name, item.bridge, method, params, timeoutMs);
+    } catch (error) {
+      failures.push(`${item.name}: ${error.message}`);
+    }
+  }
+
+  throw new Error(failures.join(' | '));
 }
 
 function waitForBridgeReady(timeoutMs = 10000) {
