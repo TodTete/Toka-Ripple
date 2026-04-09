@@ -179,6 +179,7 @@ function App() {
   const [activityLog, setActivityLog] = useState([]);
   const [authCode, setAuthCode] = useState('');
   const [accessToken, setAccessToken] = useState('');
+  const [tokenType, setTokenType] = useState('Bearer');
   const [userId, setUserId] = useState('');
   const [userInfo, setUserInfo] = useState(null);
   const [contactInfo, setContactInfo] = useState(null);
@@ -206,6 +207,7 @@ function App() {
     const savedSession = safeParse(window.localStorage.getItem(SESSION_KEY), null);
     if (savedSession) {
       setAccessToken(savedSession.accessToken || '');
+      setTokenType(savedSession.tokenType || 'Bearer');
       setUserId(savedSession.userId || '');
       setAuthCode(savedSession.authCode || '');
       setUserInfo(savedSession.userInfo || null);
@@ -247,6 +249,7 @@ function App() {
       SESSION_KEY,
       JSON.stringify({
         accessToken,
+        tokenType,
         userId,
         authCode,
         userInfo,
@@ -255,7 +258,7 @@ function App() {
         walletState,
       })
     );
-  }, [accessToken, userId, authCode, userInfo, contactInfo, paymentForm, walletState]);
+  }, [accessToken, tokenType, userId, authCode, userInfo, contactInfo, paymentForm, walletState]);
 
   function pushActivity(title, detail) {
     setActivityLog((current) => [{ id: `${Date.now()}-${current.length}`, title, detail }, ...current].slice(0, 6));
@@ -324,6 +327,7 @@ function App() {
 
       const authResult = await authenticate(code, exchange);
       const token = authResult?.data?.accessToken || '';
+      const authTokenType = authResult?.data?.tokenType || 'Bearer';
       const nextUserId = authResult?.data?.userId || '';
 
       if (!token || !nextUserId) {
@@ -332,12 +336,13 @@ function App() {
 
       setAuthCode(code);
       setAccessToken(token);
+      setTokenType(authTokenType);
       setUserId(nextUserId);
       setUserInfo({ userId: nextUserId });
 
       try {
         const profileAuthCodes = await collectProfileAuthCodes(code);
-        const userInfoResult = await getUserInfo(token, profileAuthCodes);
+        const userInfoResult = await getUserInfo(token, profileAuthCodes, authTokenType);
         setUserInfo(userInfoResult?.data || null);
         setContactInfo({ authCodes: profileAuthCodes.slice(1) });
       } catch (userInfoError) {
@@ -352,6 +357,7 @@ function App() {
       pushActivity('Sesión iniciada', 'Te has autenticado correctamente con tu cuenta Alipay.');
       return {
         token,
+        tokenType: authTokenType,
         userId: nextUserId,
         authCode: code,
         profileAuthCodes: [],
@@ -460,6 +466,7 @@ function App() {
 
       const refreshedSession = await handleAuthorizeAccess();
       const paymentToken = refreshedSession?.token || accessToken;
+      const paymentTokenType = refreshedSession?.tokenType || tokenType || 'Bearer';
       const paymentUserId = refreshedSession?.userId || userId;
 
       if (!paymentToken || !paymentUserId) {
@@ -468,6 +475,7 @@ function App() {
 
       const result = await createPayment({
         accessToken: paymentToken,
+        tokenType: paymentTokenType,
         userId: paymentUserId,
         merchantCode: backendConfig.merchantCodePrefix,
         orderTitle: paymentForm.orderTitle,
@@ -506,7 +514,7 @@ function App() {
       if (!paymentForm.paymentId) {
         throw new Error('Primero crea un pago para obtener paymentId.');
       }
-      const result = await inquiryPayment(accessToken, paymentForm.paymentId);
+      const result = await inquiryPayment(accessToken, paymentForm.paymentId, tokenType);
       pushActivity('Pago consultado', result?.message || 'Consulta completada.');
     } catch (error) {
       pushActivity('Consulta fallida', error?.payload?.message || error.message || 'No se pudo consultar el pago.');
@@ -521,7 +529,7 @@ function App() {
       if (!paymentForm.paymentId) {
         throw new Error('Primero crea un pago para obtener paymentId.');
       }
-      const result = await closePayment(accessToken, paymentForm.paymentId);
+      const result = await closePayment(accessToken, paymentForm.paymentId, tokenType);
       pushActivity('Pago cerrado', result?.message || 'El pago se cerro correctamente.');
     } catch (error) {
       pushActivity('Cierre fallido', error?.payload?.message || error.message || 'No se pudo cerrar el pago.');

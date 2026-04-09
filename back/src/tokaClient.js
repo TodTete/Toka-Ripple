@@ -46,7 +46,7 @@ function normalizeMerchantCode(rawMerchantCode) {
   return candidate.slice(0, 5);
 }
 
-function buildHeaders({ accessToken, merchantCode } = {}) {
+function buildHeaders({ accessToken, tokenType, merchantCode } = {}) {
   const { appId, merchantCode: defaultMerchantCode } = getConfig();
   const headers = {
     'Content-Type': 'application/json',
@@ -55,9 +55,10 @@ function buildHeaders({ accessToken, merchantCode } = {}) {
 
   if (accessToken) {
     const normalizedToken = String(accessToken).trim();
-    headers.Authorization = /^Bearer\s+/i.test(normalizedToken)
+    const normalizedType = String(tokenType || 'Bearer').trim() || 'Bearer';
+    headers.Authorization = /^\S+\s+/i.test(normalizedToken)
       ? normalizedToken
-      : `Bearer ${normalizedToken}`;
+      : `${normalizedType} ${normalizedToken}`;
   }
 
   const normalizedMerchantCode = normalizeMerchantCode(merchantCode || defaultMerchantCode);
@@ -68,7 +69,7 @@ function buildHeaders({ accessToken, merchantCode } = {}) {
   return headers;
 }
 
-async function request(path, { method = 'POST', body, accessToken, merchantCode } = {}) {
+async function request(path, { method = 'POST', body, accessToken, tokenType, merchantCode } = {}) {
   const { baseUrl } = getConfig();
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 30000);
@@ -76,7 +77,7 @@ async function request(path, { method = 'POST', body, accessToken, merchantCode 
   try {
     const response = await fetch(`${baseUrl}${path}`, {
       method,
-      headers: buildHeaders({ accessToken, merchantCode }),
+      headers: buildHeaders({ accessToken, tokenType, merchantCode }),
       body: body === undefined ? undefined : JSON.stringify(body),
       signal: controller.signal,
     });

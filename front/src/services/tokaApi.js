@@ -43,20 +43,20 @@ export function authenticate(authcode, jsapiMeta = null) {
   return fetchJson('/api/alipay/authenticate', { authcode, jsapiMeta });
 }
 
-export function getUserInfo(accessToken, authCodes) {
-  return fetchJson('/api/alipay/user-info', { accessToken, authCodes });
+export function getUserInfo(accessToken, authCodes, tokenType = 'Bearer') {
+  return fetchJson('/api/alipay/user-info', { accessToken, authCodes, tokenType });
 }
 
 export function createPayment(payload) {
   return fetchJson('/api/alipay/payment/create', payload);
 }
 
-export function inquiryPayment(accessToken, paymentId) {
-  return fetchJson('/api/alipay/payment/inquiry', { accessToken, paymentId });
+export function inquiryPayment(accessToken, paymentId, tokenType = 'Bearer') {
+  return fetchJson('/api/alipay/payment/inquiry', { accessToken, paymentId, tokenType });
 }
 
-export function closePayment(accessToken, paymentId) {
-  return fetchJson('/api/alipay/payment/close', { accessToken, paymentId });
+export function closePayment(accessToken, paymentId, tokenType = 'Bearer') {
+  return fetchJson('/api/alipay/payment/close', { accessToken, paymentId, tokenType });
 }
 
 export function refundPayment(payload) {

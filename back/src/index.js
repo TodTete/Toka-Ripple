@@ -158,6 +158,7 @@ app.post('/api/alipay/user-info', validateBaseRequest, async (req, res) => {
     const result = await request('/v1/user/info', {
       body: { authCodes },
       accessToken: req.body.accessToken,
+      tokenType: req.body.tokenType,
     });
     return forwardResult(res, result);
   } catch (error) {
@@ -197,6 +198,7 @@ app.post('/api/alipay/payment/create', validateBaseRequest, async (req, res) => 
         orderAmount: req.body.orderAmount,
       },
       accessToken: req.body.accessToken,
+      tokenType: req.body.tokenType,
       merchantCode: req.body.merchantCode,
     });
     return forwardResult(res, result);
@@ -233,6 +235,7 @@ app.post('/api/alipay/payment/inquiry', validateBaseRequest, async (req, res) =>
     const result = await request('/v1/payment/inquiry', {
       body: { paymentId: req.body.paymentId },
       accessToken: req.body.accessToken,
+      tokenType: req.body.tokenType,
     });
     return forwardResult(res, result);
   } catch (error) {
@@ -268,6 +271,7 @@ app.post('/api/alipay/payment/close', validateBaseRequest, async (req, res) => {
     const result = await request('/v1/payment/close', {
       body: { paymentId: req.body.paymentId },
       accessToken: req.body.accessToken,
+      tokenType: req.body.tokenType,
     });
     return forwardResult(res, result);
   } catch (error) {
@@ -307,6 +311,7 @@ app.post('/api/alipay/payment/refund', validateBaseRequest, async (req, res) => 
         refundAmount: req.body.refundAmount,
       },
       accessToken: req.body.accessToken,
+      tokenType: req.body.tokenType,
       merchantCode: req.body.merchantCode,
     });
     return forwardResult(res, result);
@@ -343,6 +348,7 @@ app.post('/api/alipay/payment/inquiry-refund', validateBaseRequest, async (req, 
     const result = await request('/v1/payment/inquiry-refund', {
       body: { refundId: req.body.refundId },
       accessToken: req.body.accessToken,
+      tokenType: req.body.tokenType,
     });
     return forwardResult(res, result);
   } catch (error) {
