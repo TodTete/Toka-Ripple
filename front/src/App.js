@@ -95,6 +95,7 @@ function extractJsapiExchange(result) {
       hasResultAsString: typeof result?.result === 'string',
       hasDataAsString: typeof result?.data === 'string',
     },
+    rawResponse: result,
   };
 }
 
@@ -165,6 +166,7 @@ function App() {
   const [permissionsError, setPermissionsError] = useState('');
   const [bridgeDiagnostics, setBridgeDiagnostics] = useState('');
   const [authExchangeMeta, setAuthExchangeMeta] = useState(null);
+  const [authExchangeRaw, setAuthExchangeRaw] = useState(null);
 
   useEffect(() => {
     const savedSession = safeParse(window.localStorage.getItem(SESSION_KEY), null);
@@ -215,6 +217,7 @@ function App() {
   async function handleAuthorizeAccess() {
     setLoadingAction('authorize');
     setPermissionsError('');
+    let rawExchange = null;
     try {
       if (!isAlipayWebView()) {
         throw new Error('Esta función solo está disponible dentro de la SuperApp de Toka/Alipay.');
@@ -253,8 +256,10 @@ function App() {
         );
       }
 
-      const exchange = extractJsapiExchange(result);
+      rawExchange = result || null;
+      const exchange = extractJsapiExchange(rawExchange);
       setAuthExchangeMeta(exchange);
+      setAuthExchangeRaw(rawExchange);
 
       if (!isJsapiExchangeValid(exchange)) {
         throw new Error(
@@ -294,6 +299,7 @@ function App() {
         errorMessage: detail,
         runtimeInfo,
         authExchangeMeta,
+        authExchangeRaw: rawExchange,
         attempts: error?.attempts || error?.causes?.map((item) => ({
           method: item?.method,
           message: item?.message,
@@ -533,6 +539,13 @@ function App() {
               <div className="diagnostic-box">
                 <p className="terms-legend">Intercambio JSAPI capturado</p>
                 <pre>{JSON.stringify(authExchangeMeta, null, 2)}</pre>
+              </div>
+            ) : null}
+
+            {authExchangeRaw ? (
+              <div className="diagnostic-box">
+                <p className="terms-legend">Payload crudo del JSAPI</p>
+                <pre>{JSON.stringify(authExchangeRaw, null, 2)}</pre>
               </div>
             ) : null}
 
