@@ -402,10 +402,11 @@ function App() {
   async function handleCreatePayment() {
     setLoadingAction('create-payment');
     try {
+      const merchantCodePrefix = backendConfig?.merchantCodePrefix || paymentForm.merchantCode;
       const result = await createPayment({
         accessToken,
         userId,
-        merchantCode: paymentForm.merchantCode,
+        merchantCode: merchantCodePrefix,
         orderTitle: paymentForm.orderTitle,
         orderAmount: {
           value: paymentForm.orderAmount,
@@ -623,7 +624,7 @@ function App() {
             <p className="panel-tag">Wallet Toka</p>
             <h2>Tu cartera y transacciones</h2>
             <p>
-              Gestiona tus pagos y reembolsos con cero fricción directamente desde Toka.
+                  Gestiona tus pagos con cero fricción directamente desde Toka.
             </p>
 
             <div className="mini-metrics">
@@ -639,9 +640,17 @@ function App() {
 
             <div className="form-grid">
               <label>
-                Merchant Code
+                Merchant ID completo
+                <input
+                  value={backendConfig?.merchantCode || 'Cargando merchant ID...'}
+                  readOnly
+                />
+              </label>
+
+              <label>
+                Merchant prefix usado en pagos
                 <input 
-                  value={paymentForm.merchantCode} 
+                  value={backendConfig?.merchantCodePrefix || paymentForm.merchantCode} 
                   readOnly
                   placeholder="30100" 
                   maxLength={5} 
@@ -672,6 +681,10 @@ function App() {
                 />
               </label>
             </div>
+
+            <p className="permission-help">
+              La API de pago usa solo el prefijo de 5 caracteres. El ID completo se muestra arriba como referencia.
+            </p>
 
             <div className="action-row wrap">
               <button type="button" onClick={handleCreatePayment} disabled={loadingAction === 'create-payment'}>

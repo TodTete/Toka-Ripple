@@ -88,6 +88,7 @@ app.get('/api/config', (_req, res) => {
     data: {
       appId: config.appId,
       hasMerchantCode: Boolean(config.merchantCode),
+      merchantCode: config.merchantCode,
       merchantCodePrefix,
       tokaApiBaseUrl: config.baseUrl,
       errors: config.validation.errors,
