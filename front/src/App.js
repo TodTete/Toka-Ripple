@@ -214,11 +214,12 @@ function App() {
         userId,
         authCode,
         userInfo,
+        contactInfo,
         paymentForm,
         walletState,
       })
     );
-  }, [accessToken, userId, authCode, userInfo, paymentForm, walletState]);
+  }, [accessToken, userId, authCode, userInfo, contactInfo, paymentForm, walletState]);
 
   function pushActivity(title, detail) {
     setActivityLog((current) => [{ id: `${Date.now()}-${current.length}`, title, detail }, ...current].slice(0, 6));
@@ -296,6 +297,7 @@ function App() {
       setAuthCode(code);
       setAccessToken(token);
       setUserId(nextUserId);
+      setUserInfo({ userId: nextUserId });
 
       try {
         const profileAuthCodes = [code];
@@ -785,7 +787,7 @@ function App() {
             <p>Información verificada y segura desde Toka.</p>
 
             <div className="identity-box">
-              <strong>{userInfo?.fullName || userInfo?.nickName || 'Perfil no sincronizado'}</strong>
+              <strong>{userInfo?.fullName || userInfo?.nickName || userInfo?.userId || userId || 'Perfil no sincronizado'}</strong>
               <span>{userInfo?.email || userInfo?.mobilePhone || 'Sin email/teléfono disponible'}</span>
               <div className="profile-summary">
                 <span>ID: {userInfo?.userId || userId || 'No disponible'}</span>
