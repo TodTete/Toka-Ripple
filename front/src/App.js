@@ -166,8 +166,6 @@ function App() {
   const [permissionsGatePassed, setPermissionsGatePassed] = useState(false);
   const [permissionsError, setPermissionsError] = useState('');
   const [bridgeDiagnostics, setBridgeDiagnostics] = useState('');
-  const [authExchangeMeta, setAuthExchangeMeta] = useState(null);
-  const [authExchangeRaw, setAuthExchangeRaw] = useState(null);
 
   useEffect(() => {
     const savedSession = safeParse(window.localStorage.getItem(SESSION_KEY), null);
@@ -261,8 +259,6 @@ function App() {
       rawExchange = result || null;
       const exchange = extractJsapiExchange(rawExchange);
       latestAuthExchangeMeta = exchange;
-      setAuthExchangeMeta(exchange);
-      setAuthExchangeRaw(rawExchange);
 
       if (!isJsapiExchangeValid(exchange)) {
         throw new Error(
@@ -473,7 +469,6 @@ function App() {
   }
 
   const selectedChallenge = DAILY_CHALLENGES.find((item) => item.id === walletState.selectedChallengeId) || DAILY_CHALLENGES[0];
-  const bridgeRuntimeInfo = getBridgeRuntimeInfo();
 
   if (!permissionsGatePassed) {
     return (
@@ -490,7 +485,7 @@ function App() {
               <div>
                 <strong>DigitalIdentity</strong>
                 <p className="permission-help">
-                  Data usage authorization: USER_ID, USER_AVATAR y USER_NICKNAME.
+                  Permisos: USER_ID, USER_AVATAR y USER_NICKNAME.
                 </p>
               </div>
               <div className="permission-actions">
@@ -498,16 +493,12 @@ function App() {
                   {digitalIdentityAuthorized ? 'Verificado' : 'Pendiente'}
                 </span>
                 <button type="button" onClick={handleAuthorizeAccess} disabled={loadingAction === 'authorize'}>
-                  {loadingAction === 'authorize' ? 'Autorizando...' : 'Autorizar DigitalIdentity'}
+                  {loadingAction === 'authorize' ? 'Autorizando...' : 'Autorizar'}
                 </button>
               </div>
             </div>
 
             <div className="terms-box">
-              <p className="terms-legend">Leyenda</p>
-              <p>
-                Al continuar aceptas el uso de datos autorizados para autenticación, sesión y funcionamiento de la mini app.
-              </p>
               <label className="terms-check">
                 <input
                   type="checkbox"
@@ -532,56 +523,6 @@ function App() {
                 {digitalIdentityAuthorized && termsAccepted ? 'Continuar' : 'Continuar (bloqueado)'}
               </button>
             </div>
-
-            <div className="diagnostic-box">
-              <p className="terms-legend">Diagnóstico runtime</p>
-              <pre>{JSON.stringify(bridgeRuntimeInfo, null, 2)}</pre>
-            </div>
-
-            {authExchangeMeta ? (
-              <div className="diagnostic-box">
-                <p className="terms-legend">Intercambio JSAPI capturado</p>
-                <pre>{JSON.stringify(authExchangeMeta, null, 2)}</pre>
-              </div>
-            ) : null}
-
-            {authExchangeRaw ? (
-              <div className="diagnostic-box">
-                <p className="terms-legend">Payload crudo del JSAPI</p>
-                <pre>{JSON.stringify(authExchangeRaw, null, 2)}</pre>
-              </div>
-            ) : null}
-
-            {bridgeDiagnostics ? (
-              <div className="diagnostic-box">
-                <p className="terms-legend">Último error técnico</p>
-                <pre>{bridgeDiagnostics}</pre>
-              </div>
-            ) : null}
-          </article>
-
-          <article className="panel">
-            <p className="panel-tag">Estado actual</p>
-            <div className="mini-metrics">
-              <div>
-                <strong>{isAlipayWebView() ? '✓' : '○'}</strong>
-                <span>Dentro de SuperApp</span>
-              </div>
-              <div>
-                <strong>{digitalIdentityAuthorized ? '✓' : '○'}</strong>
-                <span>DigitalIdentity</span>
-              </div>
-              <div>
-                <strong>{termsAccepted ? '✓' : '○'}</strong>
-                <span>Términos</span>
-              </div>
-            </div>
-
-            {!bridgeRuntimeInfo.hasAlipayJSBridge ? (
-              <p className="error-banner">
-                No se detecta <strong>AlipayJSBridge</strong>. Si ves esto en navegador, es esperado. Para autorizar de verdad debes abrir la mini app dentro de la SuperApp o el WebView H5+ real.
-              </p>
-            ) : null}
           </article>
         </section>
       </main>

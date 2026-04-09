@@ -1,6 +1,6 @@
 .app-shell {
   min-height: 100vh;
-  padding: 24px;
+  padding: 12px;
   background: #0f1118;
   color: #f5efe4;
 }
@@ -9,12 +9,12 @@
 .view-tabs,
 .two-column-layout,
 .log-panel {
-  width: min(1200px, 100%);
+  width: min(430px, 100%);
   margin: 0 auto;
 }
 
 .permissions-layout {
-  width: min(980px, 100%);
+  width: min(430px, 100%);
   margin: 0 auto;
   display: grid;
   gap: 18px;
@@ -197,7 +197,7 @@ button.secondary {
 
 .two-column-layout {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: 1fr;
   gap: 18px;
 }
 
@@ -207,7 +207,7 @@ button.secondary {
 
 .panel,
 .modal-card {
-  padding: 20px;
+  padding: 16px;
 }
 
 .panel p,
@@ -234,7 +234,7 @@ button.secondary {
 
 .form-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: 1fr;
   gap: 12px;
 }
 
@@ -273,7 +273,7 @@ button.secondary {
 
 .feed-list {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: 1fr;
 }
 
 .feed-item,
@@ -293,7 +293,7 @@ button.secondary {
 
 .log-panel {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: 1fr;
   gap: 18px;
   margin-top: 18px;
 }
