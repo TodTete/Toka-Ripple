@@ -28,6 +28,48 @@ function parseMaybeJson(value) {
   }
 }
 
+function findAuthCodeDeep(value, depth = 0) {
+  if (!value || depth > 5) {
+    return '';
+  }
+
+  if (typeof value === 'string') {
+    const parsed = parseMaybeJson(value);
+    if (parsed) {
+      return findAuthCodeDeep(parsed, depth + 1);
+    }
+    return '';
+  }
+
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const nested = findAuthCodeDeep(item, depth + 1);
+      if (nested) {
+        return nested;
+      }
+    }
+    return '';
+  }
+
+  if (typeof value === 'object') {
+    const directKeys = ['authCode', 'authcode', 'auth_code', 'authorizationCode', 'code'];
+    for (const key of directKeys) {
+      if (typeof value[key] === 'string' && value[key].trim()) {
+        return value[key].trim();
+      }
+    }
+
+    for (const key of Object.keys(value)) {
+      const nested = findAuthCodeDeep(value[key], depth + 1);
+      if (nested) {
+        return nested;
+      }
+    }
+  }
+
+  return '';
+}
+
 export function extractAuthCodeFromBridgeResponse(response) {
   const parsedResult = parseMaybeJson(response?.result);
   const parsedData = parseMaybeJson(response?.data);
@@ -48,6 +90,7 @@ export function extractAuthCodeFromBridgeResponse(response) {
     parsedResult?.data?.authcode ||
     parsedData?.authCode ||
     parsedData?.authcode ||
+    findAuthCodeDeep(response) ||
     ''
   );
 }
@@ -140,11 +183,13 @@ function callBridgeByMethodOn(bridgeName, bridge, method, params, timeoutMs = 15
         }
 
         if (/AuthCode$/i.test(method) && !extractAuthCodeFromBridgeResponse(response)) {
+          const missingCodeError = new Error(
+            `Bridge ${bridgeName} method ${method} returned success but no authCode in payload.`
+          );
+          missingCodeError.response = response;
           finish(
             reject,
-            new Error(
-              `Bridge ${bridgeName} method ${method} returned success but no authCode in payload.`
-            )
+            missingCodeError
           );
           return;
         }
@@ -159,11 +204,13 @@ function callBridgeByMethodOn(bridgeName, bridge, method, params, timeoutMs = 15
         Object.assign({}, params, {
           success: (response) => {
             if (/AuthCode$/i.test(method) && !extractAuthCodeFromBridgeResponse(response)) {
+              const missingCodeError = new Error(
+                `Bridge ${bridgeName} method ${method} returned success but no authCode in payload.`
+              );
+              missingCodeError.response = response;
               finish(
                 reject,
-                new Error(
-                  `Bridge ${bridgeName} method ${method} returned success but no authCode in payload.`
-                )
+                missingCodeError
               );
               return;
             }
@@ -296,6 +343,19 @@ function getAuthMethodCandidates(authType, usage, strictMethodOnly = false) {
         usage: usage || 'Authorization requested by Toka Ripple.',
       },
     },
+    {
+      method: methodName,
+      params: {
+        scopeNicks: scopes,
+        usage: usage || 'Authorization requested by Toka Ripple.',
+      },
+    },
+    {
+      method: methodName,
+      params: {
+        usage: usage || 'Authorization requested by Toka Ripple.',
+      },
+    },
   ];
 
   if (strictMethodOnly) {
@@ -310,7 +370,15 @@ function getAuthMethodCandidates(authType, usage, strictMethodOnly = false) {
       },
       {
         method: 'getAuthCode',
+        params: { scopeNicks: scopeNick },
+      },
+      {
+        method: 'getAuthCode',
         params: { scopes: [scopeNick] },
+      },
+      {
+        method: 'getAuthCode',
+        params: { scopes: scopeNick },
       }
     );
   }
