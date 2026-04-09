@@ -67,23 +67,53 @@ function hasBridgeError(response) {
   );
 }
 
-function callBridgeByMethod(method, params) {
+function callBridgeByMethod(method, params, timeoutMs = 15000) {
   return new Promise((resolve, reject) => {
     const bridge = window.AlipayJSBridge || window.my;
+    let settled = false;
+
+    const finish = (handler, value) => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      clearTimeout(timeout);
+      handler(value);
+    };
+
+    const timeout = setTimeout(() => {
+      finish(
+        reject,
+        new Error(
+          `Bridge method ${method} timed out after ${timeoutMs}ms. The container did not return success/fail callback.`
+        )
+      );
+    }, timeoutMs);
 
     if (!bridge) {
-      reject(new Error('Alipay bridge is not available.'));
+      finish(reject, new Error('Alipay bridge is not available.'));
       return;
     }
 
     if (typeof bridge.call === 'function') {
-      bridge.call(method, params, (response) => {
+      const payload = Object.assign({}, params, {
+        success: (response) => {
+          if (hasBridgeError(response)) {
+            finish(reject, normalizeBridgeError(method, response));
+            return;
+          }
+          finish(resolve, response);
+        },
+        fail: (response) => finish(reject, normalizeBridgeError(method, response)),
+      });
+
+      bridge.call(method, payload, (response) => {
         if (hasBridgeError(response)) {
-          reject(normalizeBridgeError(method, response));
+          finish(reject, normalizeBridgeError(method, response));
           return;
         }
 
-        resolve(response);
+        finish(resolve, response);
       });
       return;
     }
@@ -91,15 +121,16 @@ function callBridgeByMethod(method, params) {
     if (typeof bridge[method] === 'function') {
       bridge[method](
         Object.assign({}, params, {
-          success: (response) => resolve(response),
-          fail: (response) => reject(normalizeBridgeError(method, response)),
+          success: (response) => finish(resolve, response),
+          fail: (response) => finish(reject, normalizeBridgeError(method, response)),
         })
       );
       return;
     }
 
     const availableKeys = Object.keys(bridge).slice(0, 20).join(', ') || 'none';
-    reject(
+    finish(
+      reject,
       new Error(
         `Bridge method ${method} is not available. bridge.call=${typeof bridge.call === 'function'} availableKeys=${availableKeys}`
       )

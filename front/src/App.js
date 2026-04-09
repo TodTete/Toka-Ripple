@@ -228,9 +228,9 @@ function App() {
       } catch (strictError) {
         const strictDetail = formatErrorDetail(strictError, 'DigitalIdentity authorization failed.');
 
-        if (/denied|no permission|jsapi call denied/i.test(strictDetail)) {
+        if (/denied|no permission|jsapi call denied|not available|timed out/i.test(strictDetail)) {
           pushActivity(
-            'DigitalIdentity denegado',
+            'DigitalIdentity no disponible',
             'Reintentando con método alterno de auth para obtener JWT.'
           );
           result = await requestAuthCode('DigitalIdentity', authorizationMsg, false);
@@ -297,6 +297,8 @@ function App() {
           'Version liberada en ambiente Test para ese Mini Program ID.',
           'Feature User_Digital_Identity_Information = Activated para el mismo appId.',
           'Global config Test vinculado (Client ID / Merchant ID) y release aplicado.',
+          'Si se queda en "Autorizando...", revisar timeout/método no disponible en contenedor y usar fallback getAuthCode.',
+          'TOKA_MERCHANT_CODE largo (12 chars) solo afecta pagos, no auth; para pagos debe enviarse prefijo de 5 chars cuando aplique.',
           'No usar cached WebView viejo: cerrar y reabrir mini app después del release.',
         ],
       };
