@@ -503,6 +503,9 @@ function App() {
   async function handleInquiryPayment() {
     setLoadingAction('inquiry-payment');
     try {
+      if (!paymentForm.paymentId) {
+        throw new Error('Primero crea un pago para obtener paymentId.');
+      }
       const result = await inquiryPayment(accessToken, paymentForm.paymentId);
       pushActivity('Pago consultado', result?.message || 'Consulta completada.');
     } catch (error) {
@@ -515,6 +518,9 @@ function App() {
   async function handleClosePayment() {
     setLoadingAction('close-payment');
     try {
+      if (!paymentForm.paymentId) {
+        throw new Error('Primero crea un pago para obtener paymentId.');
+      }
       const result = await closePayment(accessToken, paymentForm.paymentId);
       pushActivity('Pago cerrado', result?.message || 'El pago se cerro correctamente.');
     } catch (error) {
@@ -768,10 +774,20 @@ function App() {
               <button type="button" onClick={handleAuthorizeAndPay} disabled={loadingAction === 'authorize-pay'}>
                 Crear pago
               </button>
-              <button type="button" className="secondary" onClick={handleInquiryPayment} disabled={loadingAction === 'inquiry-payment'}>
+              <button
+                type="button"
+                className="secondary"
+                onClick={handleInquiryPayment}
+                disabled={loadingAction === 'inquiry-payment' || !paymentForm.paymentId}
+              >
                 Consultar pago
               </button>
-              <button type="button" className="secondary" onClick={handleClosePayment} disabled={loadingAction === 'close-payment'}>
+              <button
+                type="button"
+                className="secondary"
+                onClick={handleClosePayment}
+                disabled={loadingAction === 'close-payment' || !paymentForm.paymentId}
+              >
                 Cerrar pago
               </button>
             </div>

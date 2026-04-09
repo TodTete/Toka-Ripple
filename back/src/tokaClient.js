@@ -54,7 +54,10 @@ function buildHeaders({ accessToken, merchantCode } = {}) {
   };
 
   if (accessToken) {
-    headers.Authorization = `Bearer ${accessToken}`;
+    const normalizedToken = String(accessToken).trim();
+    headers.Authorization = /^Bearer\s+/i.test(normalizedToken)
+      ? normalizedToken
+      : `Bearer ${normalizedToken}`;
   }
 
   const normalizedMerchantCode = normalizeMerchantCode(merchantCode || defaultMerchantCode);
@@ -79,9 +82,23 @@ async function request(path, { method = 'POST', body, accessToken, merchantCode 
     });
 
     const contentType = response.headers.get('content-type') || '';
-    const payload = contentType.includes('application/json')
+    let payload = contentType.includes('application/json')
       ? await response.json()
       : await response.text();
+
+    if (!response.ok) {
+      const isEmptyStringPayload = typeof payload === 'string' && payload.trim() === '';
+      const isMissingPayload = payload === null || typeof payload === 'undefined';
+
+      if (isEmptyStringPayload || isMissingPayload) {
+        payload = {
+          success: false,
+          statusCode: response.status,
+          message: `Toka API rejected request ${method} ${path} with HTTP ${response.status}.`,
+          data: {},
+        };
+      }
+    }
 
     return {
       status: response.status,
