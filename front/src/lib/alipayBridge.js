@@ -318,11 +318,19 @@ async function callBridgeByMethod(method, params, timeoutMs = 15000) {
     try {
       return await callBridgeByMethodOn(item.name, item.bridge, method, params, timeoutMs);
     } catch (error) {
-      failures.push(`${item.name}: ${error.message}`);
+      failures.push({
+        bridge: item.name,
+        method,
+        params,
+        message: error?.message || 'Unknown bridge error',
+        response: error?.response || null,
+      });
     }
   }
 
-  throw new Error(failures.join(' | '));
+  const aggregated = new Error(failures.map((item) => `${item.bridge}: ${item.message}`).join(' | '));
+  aggregated.details = failures;
+  throw aggregated;
 }
 
 function waitForBridgeReady(timeoutMs = 10000) {
@@ -381,11 +389,13 @@ async function callBridgeWithFallback(candidates) {
       const result = await callBridgeByMethod(candidate.method, candidate.params);
       return { result, method: candidate.method, params: candidate.params, attempts };
     } catch (error) {
+      const detailList = Array.isArray(error?.details) ? error.details : null;
       attempts.push({
         method: candidate.method,
         params: candidate.params,
         message: error?.message || 'Unknown bridge error',
         response: error?.response || null,
+        bridgeDetails: detailList,
       });
       errors.push(error);
     }
@@ -418,7 +428,21 @@ function getAuthMethodCandidates(authType, usage, strictMethodOnly = false) {
     {
       method: methodName,
       params: {
+        scopes: scopes.join(','),
+        usage: usage || 'Authorization requested by Toka Ripple.',
+      },
+    },
+    {
+      method: methodName,
+      params: {
         scopeNicks: scopes,
+        usage: usage || 'Authorization requested by Toka Ripple.',
+      },
+    },
+    {
+      method: methodName,
+      params: {
+        scopeNicks: scopes.join(','),
         usage: usage || 'Authorization requested by Toka Ripple.',
       },
     },
@@ -438,6 +462,10 @@ function getAuthMethodCandidates(authType, usage, strictMethodOnly = false) {
     candidates.push(
       {
         method: 'getAuthCode',
+        params: {},
+      },
+      {
+        method: 'getAuthCode',
         params: { scopeNicks: [scopeNick] },
       },
       {
@@ -446,11 +474,19 @@ function getAuthMethodCandidates(authType, usage, strictMethodOnly = false) {
       },
       {
         method: 'getAuthCode',
+        params: { scopeNicks: `${scopeNick}` },
+      },
+      {
+        method: 'getAuthCode',
         params: { scopes: [scopeNick] },
       },
       {
         method: 'getAuthCode',
         params: { scopes: scopeNick },
+      },
+      {
+        method: 'getAuthCode',
+        params: { scopeNicks: [scopeNick], scopes: [scopeNick] },
       }
     );
   }
