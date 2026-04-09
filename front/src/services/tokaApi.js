@@ -13,9 +13,16 @@ async function fetchJson(path, body) {
   const payload = contentType.includes('application/json') ? await response.json() : await response.text();
 
   if (!response.ok) {
-    const error = new Error((payload && payload.message) || 'Request failed.');
+    const payloadMessage =
+      typeof payload === 'string'
+        ? payload.trim()
+        : payload?.message || payload?.error || payload?.title || '';
+    const error = new Error(
+      payloadMessage || `Request failed (${response.status}).`
+    );
     error.payload = payload;
     error.status = response.status;
+    error.responseText = typeof payload === 'string' ? payload : '';
     throw error;
   }
 

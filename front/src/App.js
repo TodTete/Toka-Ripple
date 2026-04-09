@@ -145,6 +145,7 @@ function App() {
   const [accessToken, setAccessToken] = useState('');
   const [userId, setUserId] = useState('');
   const [userInfo, setUserInfo] = useState(null);
+  const [contactInfo, setContactInfo] = useState(null);
   const [paymentForm, setPaymentForm] = useState({
     merchantCode: '',
     orderTitle: 'Entrada Toka Ripple',
@@ -172,7 +173,12 @@ function App() {
       setUserId(savedSession.userId || '');
       setAuthCode(savedSession.authCode || '');
       setUserInfo(savedSession.userInfo || null);
-      setPaymentForm((current) => ({ ...current, ...savedSession.paymentForm }));
+      setContactInfo(savedSession.contactInfo || null);
+      setPaymentForm((current) => ({
+        ...current,
+        ...savedSession.paymentForm,
+        currency: 'USD',
+      }));
       setWalletState((current) => ({ ...current, ...savedSession.walletState }));
 
       if (savedSession.accessToken && savedSession.userId) {
@@ -293,10 +299,12 @@ function App() {
 
       try {
         const profileAuthCodes = [code];
+        let contactCode = '';
+
         try {
           const contactMessage = 'Toka Ripple needs your authorization to access your contact information for profile sync.';
           const contactResult = await requestAuthCode('ContactInformation', contactMessage, true);
-          const contactCode = extractAuthCodeFromBridgeResponse(contactResult);
+          contactCode = extractAuthCodeFromBridgeResponse(contactResult);
           if (contactCode) {
             profileAuthCodes.push(contactCode);
           }
@@ -309,6 +317,7 @@ function App() {
 
         const userInfoResult = await getUserInfo(token, profileAuthCodes);
         setUserInfo(userInfoResult?.data || null);
+        setContactInfo(contactCode ? { authCode: contactCode } : null);
       } catch (userInfoError) {
         pushActivity(
           'Perfil pendiente',
@@ -433,7 +442,7 @@ function App() {
         orderTitle: paymentForm.orderTitle,
         orderAmount: {
           value: paymentForm.orderAmount,
-          currency: paymentForm.currency,
+          currency: 'USD',
         },
       });
       const createdPaymentId = result?.data?.paymentId || '';
@@ -469,7 +478,7 @@ function App() {
         orderTitle: paymentForm.orderTitle,
         orderAmount: {
           value: paymentForm.orderAmount,
-          currency: paymentForm.currency,
+          currency: 'USD',
         },
       });
 
@@ -489,8 +498,8 @@ function App() {
         pushActivity('Pago listo', 'Abre este flujo dentro de la SuperApp para completar el pago.');
       }
     } catch (error) {
-      const detail = error?.payload?.message || error.message || 'No se pudo autorizar el pago.';
-      pushActivity('Pago fallido', detail);
+      const detail = error?.payload?.message || error.responseText || error.message || 'No se pudo crear el pago.';
+      pushActivity('Pago fallido', `${detail}${error?.status ? ` (HTTP ${error.status})` : ''}`);
     } finally {
       setLoadingAction('');
     }
@@ -744,7 +753,7 @@ function App() {
               <label>
                 Moneda
                 <input 
-                  value={paymentForm.currency} 
+                  value="USD"
                   readOnly
                 />
               </label>
@@ -778,8 +787,13 @@ function App() {
             <div className="identity-box">
               <strong>{userInfo?.fullName || userInfo?.nickName || 'Perfil no sincronizado'}</strong>
               <span>{userInfo?.email || userInfo?.mobilePhone || 'Sin email/teléfono disponible'}</span>
+              <div className="profile-summary">
+                <span>ID: {userInfo?.userId || userId || 'No disponible'}</span>
+                <span>Email: {userInfo?.email || 'No disponible'}</span>
+                <span>Teléfono: {userInfo?.mobilePhone || 'No disponible'}</span>
+              </div>
               <pre style={{marginTop: '1rem', fontSize: '0.85rem', maxHeight: '200px', overflow: 'auto'}}>
-                {JSON.stringify(userInfo || {}, null, 2)}
+                {JSON.stringify({ ...userInfo, contactInfo }, null, 2)}
               </pre>
             </div>
           </article>
