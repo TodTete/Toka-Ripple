@@ -775,3 +775,241 @@ input {
     transform: scale(1.06);
   }
 }
+
+.screen-enter {
+  animation: screenEnter 0.32s ease both;
+}
+
+.floating-card {
+  animation: floatCard 0.35s ease both;
+  transition:
+    transform 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    background 0.2s ease;
+}
+
+.floating-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.28);
+}
+
+.count-badge {
+  position: absolute;
+  top: -7px;
+  right: -7px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: linear-gradient(140deg, var(--accent), #ff7a00);
+  color: #17111f;
+  font-size: 0.64rem;
+  font-weight: 800;
+  display: grid;
+  place-items: center;
+  box-shadow: 0 0 0 2px rgba(8, 8, 16, 0.95);
+}
+
+.diagnostic-actions,
+.overlay-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.danger-soft {
+  border-color: rgba(240, 78, 94, 0.35);
+  color: #ffd6dc;
+}
+
+.wallet-intro,
+.empty-state p,
+.notification-card p,
+.notification-head span,
+.notification-card.read p,
+.notification-card.unread p {
+  color: var(--text-dim);
+}
+
+.notification-list {
+  gap: 8px;
+}
+
+.notification-card {
+  cursor: pointer;
+  transition:
+    transform 0.2s ease,
+    border-color 0.2s ease,
+    opacity 0.2s ease;
+}
+
+.notification-card:hover {
+  transform: translateY(-1px);
+}
+
+.notification-card.system {
+  border-color: rgba(0, 201, 177, 0.35);
+}
+
+.notification-card.unread {
+  border-color: rgba(245, 166, 35, 0.4);
+  box-shadow: 0 0 0 1px rgba(245, 166, 35, 0.06) inset;
+}
+
+.notification-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.notification-kind {
+  font-size: 0.66rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #ffd38d;
+}
+
+.empty-state {
+  border: 1px dashed var(--border);
+  border-radius: 14px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  display: grid;
+  gap: 4px;
+}
+
+.confetti-layer {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 80;
+}
+
+.confetti-banner {
+  position: fixed;
+  top: 58px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 81;
+  background: linear-gradient(145deg, rgba(245, 166, 35, 0.95), rgba(0, 201, 177, 0.9));
+  color: #14111f;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 16px;
+  padding: 10px 14px;
+  display: grid;
+  gap: 3px;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.32);
+  animation: popIn 0.28s ease both;
+}
+
+.confetti-banner strong {
+  font-family: 'Sora', sans-serif;
+}
+
+.confetti-piece {
+  position: absolute;
+  top: -12px;
+  border-radius: 999px;
+  opacity: 0.95;
+  animation-name: confettiFall;
+  animation-timing-function: cubic-bezier(0.18, 0.7, 0.3, 1);
+  animation-fill-mode: both;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.15) inset;
+}
+
+@keyframes screenEnter {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.99);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes floatCard {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes popIn {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-8px) scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0) scale(1);
+  }
+}
+
+@keyframes confettiFall {
+  0% {
+    transform: translate3d(0, -8vh, 0) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translate3d(var(--drift), 120vh, 0) rotate(var(--rotation));
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@media (max-width: 420px) {
+  .profile-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .bottom-nav button span {
+    font-size: 0.62rem;
+  }
+
+  .wallet-actions button {
+    min-width: 100%;
+  }
+
+  .app-shell {
+    border-left: 0;
+    border-right: 0;
+    box-shadow: none;
+  }
+
+  .screen-content,
+  .diagnostic-grid {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+
+  .bottom-nav {
+    width: calc(100% - 10px);
+  }
+
+  .confetti-banner {
+    width: calc(100% - 24px);
+  }
+
+  .overlay-card {
+    max-height: 82vh;
+  }
+}
