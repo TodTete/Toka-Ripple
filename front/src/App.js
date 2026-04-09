@@ -501,8 +501,11 @@ function App() {
         pushActivity('Pago listo', 'Abre este flujo dentro de la SuperApp para completar el pago.');
       }
     } catch (error) {
+      const debugPayload = error?.payload?.data?.debug
+        ? ` | debug=${JSON.stringify(error.payload.data.debug)}`
+        : '';
       const detail = error?.payload?.message || error.responseText || error.message || 'No se pudo crear el pago.';
-      pushActivity('Pago fallido', `${detail}${error?.status ? ` (HTTP ${error.status})` : ''}`);
+      pushActivity('Pago fallido', `${detail}${error?.status ? ` (HTTP ${error.status})` : ''}${debugPayload}`);
     } finally {
       setLoadingAction('');
     }

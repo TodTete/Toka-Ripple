@@ -73,11 +73,12 @@ async function request(path, { method = 'POST', body, accessToken, tokenType, me
   const { baseUrl } = getConfig();
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 30000);
+  const headers = buildHeaders({ accessToken, tokenType, merchantCode });
 
   try {
     const response = await fetch(`${baseUrl}${path}`, {
       method,
-      headers: buildHeaders({ accessToken, tokenType, merchantCode }),
+      headers,
       body: body === undefined ? undefined : JSON.stringify(body),
       signal: controller.signal,
     });
@@ -90,13 +91,31 @@ async function request(path, { method = 'POST', body, accessToken, tokenType, me
     if (!response.ok) {
       const isEmptyStringPayload = typeof payload === 'string' && payload.trim() === '';
       const isMissingPayload = payload === null || typeof payload === 'undefined';
+      const authHeader = String(headers.Authorization || '');
+      const normalizedAuthScheme = authHeader.split(' ')[0] || '';
+      const normalizedAuthToken = authHeader.replace(/^\S+\s+/, '');
+      const debug = {
+        requestPath: path,
+        requestMethod: method,
+        requestStatus: response.status,
+        xAppId: headers['X-App-Id'] || '',
+        merchantCodeHeader: headers['Alipay-MerchantCode'] || '',
+        hasAuthorizationHeader: Boolean(authHeader),
+        authorizationScheme: normalizedAuthScheme,
+        authorizationTokenLength: normalizedAuthToken.length,
+      };
 
       if (isEmptyStringPayload || isMissingPayload) {
         payload = {
           success: false,
           statusCode: response.status,
           message: `Toka API rejected request ${method} ${path} with HTTP ${response.status}.`,
-          data: {},
+          data: { debug },
+        };
+      } else if (typeof payload === 'object') {
+        payload.data = {
+          ...(payload.data || {}),
+          debug,
         };
       }
     }
