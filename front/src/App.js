@@ -2,12 +2,15 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Bell,
   CircleUserRound,
+  Flag,
   Gift,
   House,
   LockKeyhole,
   MessageSquare,
+  Moon,
   ShieldCheck,
   Sparkles,
+  Sun,
   Trophy,
   Wallet,
   X,
@@ -90,6 +93,38 @@ const WALL_POSTS = [
     likes: 203,
     comments: ['Vamos comunidad', 'Ya publique mi avance'],
   },
+  {
+    id: 'w-4',
+    author: 'Toka News',
+    title: 'Nueva semana, nuevas metas',
+    body: 'Empieza fuerte con una accion diaria y comparte tu progreso en el muro.',
+    likes: 119,
+    comments: ['Empezamos hoy', 'Listos para sumar'],
+  },
+  {
+    id: 'w-5',
+    author: 'Reto Team',
+    title: 'Tip rapido para completar retos',
+    body: 'Divide tu reto en pasos pequenos y marca cada avance para mantener racha.',
+    likes: 166,
+    comments: ['Funciona perfecto', 'Lo aplicare esta semana'],
+  },
+  {
+    id: 'w-6',
+    author: 'Wallet Crew',
+    title: 'Tokadrops con impacto',
+    body: 'Envia Tokadrops a quien mas participa y fortalece la comunidad.',
+    likes: 132,
+    comments: ['Buena dinamica', 'Ya mande dos hoy'],
+  },
+  {
+    id: 'w-7',
+    author: 'Comunidad Fit',
+    title: 'Movimiento del dia',
+    body: 'Sube tu energia con una rutina corta y gana puntos de manera constante.',
+    likes: 94,
+    comments: ['A entrenar', 'Me encanto el reto'],
+  },
 ];
 
 const YOUTUBE_POOL = [
@@ -99,6 +134,16 @@ const YOUTUBE_POOL = [
   { id: 'yt-4', videoId: '9bZkp7q19f0', author: USERS[3] },
   { id: 'yt-5', videoId: '3JZ_D3ELwOQ', author: USERS[4] },
   { id: 'yt-6', videoId: 'L_jWHffIx5E', author: USERS[5] },
+  { id: 'yt-7', videoId: 'fJ9rUzIMcZQ', author: USERS[2] },
+  { id: 'yt-8', videoId: 'ktvTqknDobU', author: USERS[0] },
+  { id: 'yt-9', videoId: 'Zi_XLOBDo_Y', author: USERS[5] },
+  { id: 'yt-10', videoId: 'hTWKbfoikeg', author: USERS[3] },
+  { id: 'yt-11', videoId: 'YQHsXMglC9A', author: USERS[1] },
+  { id: 'yt-12', videoId: 'RgKAFK5djSk', author: USERS[4] },
+  { id: 'yt-13', videoId: 'JGwWNGJdvx8', author: USERS[2] },
+  { id: 'yt-14', videoId: 'kJQP7kiw5Fk', author: USERS[0] },
+  { id: 'yt-15', videoId: '60ItHLz5WEA', author: USERS[1] },
+  { id: 'yt-16', videoId: '09R8_2nJtjg', author: USERS[5] },
 ];
 
 const GIFTS_CATALOG = [
@@ -197,6 +242,8 @@ const CHALLENGE_GALLERY_PRESETS = [
   { id: 'g-sim-6', title: 'Energia del dia', tone: 'gal-f' },
 ];
 
+const VIDEO_REPORT_REASONS = ['no apropiado', 'contenido duplicado', 'spam', 'no cumplio el reto'];
+
 function safeParse(value, fallback) {
   try {
     return value ? JSON.parse(value) : fallback;
@@ -248,6 +295,18 @@ function createFeedItem(index) {
     likes: 50 + (index % 25) * 3,
     comments: 12 + (index % 14),
   };
+}
+
+function getRandomChallengeId() {
+  const nonTrivia = DAILY_CHALLENGES.filter((item) => item.id !== 'ch-2');
+  const pool = nonTrivia.length > 0 ? nonTrivia : DAILY_CHALLENGES;
+  return pool[Math.floor(Math.random() * pool.length)]?.id || DAILY_CHALLENGES[0].id;
+}
+
+function getNextChallengeId(currentId) {
+  const currentIndex = DAILY_CHALLENGES.findIndex((item) => item.id === currentId);
+  const safeIndex = currentIndex >= 0 ? currentIndex : 0;
+  return DAILY_CHALLENGES[(safeIndex + 1) % DAILY_CHALLENGES.length].id;
 }
 
 function extractJsapiExchange(result) {
@@ -345,9 +404,9 @@ function App() {
   const [giftStock, setGiftStock] = useState(() => GIFTS_CATALOG.reduce((acc, gift) => ({ ...acc, [gift.id]: gift.stock }), {}));
   const [notifications, setNotifications] = useState(() => [{ id: SYSTEM_NOTIFICATION_ID, title: 'Base lista', detail: 'App lista con auth, wallet, retos, feed y perfil conectados.', read: false, kind: 'system' }, ...NOTIFICATIONS_BASE]);
   const [wallState, setWallState] = useState(() => WALL_POSTS.reduce((acc, post) => ({ ...acc, [post.id]: { liked: false, likes: post.likes, comments: [...post.comments], draft: '', showComments: false } }), {}));
-  const [feedItems] = useState(() => Array.from({ length: 10 }, (_, index) => createFeedItem(index)));
+  const [feedItems, setFeedItems] = useState(() => Array.from({ length: 18 }, (_, index) => createFeedItem(index)));
   const [pendingTokadropUser, setPendingTokadropUser] = useState(null);
-  const [settingsState, setSettingsState] = useState({ notificationsEnabled: true, privateProfile: false, compactMode: false, profileName: '', profileEmail: '', profilePhone: '' });
+  const [settingsState, setSettingsState] = useState({ notificationsEnabled: true, privateProfile: false, compactMode: false, profileName: '', profileEmail: '', profilePhone: '', logoMode: 'lite' });
   const [triviaState, setTriviaState] = useState({ active: false, pool: shuffle(TRIVIA_QUESTIONS.map((item) => item.id)), roundQuestions: [], questionIndex: 0, selectedOption: null, roundScore: 0, roundsCompleted: 0 });
   const [digitalIdentityAuthorized, setDigitalIdentityAuthorized] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
@@ -357,6 +416,10 @@ function App() {
   const [confettiBurst, setConfettiBurst] = useState(null);
   const [showChallengeGallery, setShowChallengeGallery] = useState(false);
   const [selectedGalleryPresetId, setSelectedGalleryPresetId] = useState(CHALLENGE_GALLERY_PRESETS[0].id);
+  const [showStartupChallengeModal, setShowStartupChallengeModal] = useState(true);
+  const [startupChallengeId, setStartupChallengeId] = useState(() => getRandomChallengeId());
+  const [showVideoReportOverlay, setShowVideoReportOverlay] = useState(false);
+  const [selectedReportReason, setSelectedReportReason] = useState(VIDEO_REPORT_REASONS[0]);
   const confettiTimerRef = useRef(null);
 
   useEffect(() => {
@@ -603,6 +666,116 @@ function App() {
     pushActivity('Tokadrop preparado', `Listo para enviar Tokadrop a ${user.name}.`);
   }
 
+  function rotateFeedVideo() {
+    setFeedItems((current) => {
+      if (current.length <= 1) {
+        return current;
+      }
+      return [...current.slice(1), current[0]];
+    });
+  }
+
+  function openVideoReport() {
+    setShowVideoReportOverlay(true);
+    setSelectedReportReason(VIDEO_REPORT_REASONS[0]);
+  }
+
+  function submitVideoReport() {
+    const activeFeedItem = feedItems[0];
+    pushActivity('Video reportado', `Motivo: ${selectedReportReason}. Video: ${activeFeedItem?.title || 'clip actual'}.`);
+    setShowVideoReportOverlay(false);
+  }
+
+  function acceptStartupChallenge() {
+    setWalletState((current) => ({ ...current, selectedChallengeId: startupChallengeId }));
+    setScreen('reto');
+    setShowStartupChallengeModal(false);
+    setShowChallengeGallery(true);
+  }
+
+  function changeStartupChallenge() {
+    const nextId = getNextChallengeId(startupChallengeId);
+    setStartupChallengeId(nextId);
+    setWalletState((current) => ({ ...current, selectedChallengeId: nextId }));
+    setScreen('reto');
+    setShowStartupChallengeModal(false);
+  }
+
+  function closeStartupChallenge() {
+    setShowStartupChallengeModal(false);
+  }
+
+  function renderStartupChallengeOverlay() {
+    if (!showStartupChallengeModal) {
+      return null;
+    }
+    const startupChallenge = DAILY_CHALLENGES.find((item) => item.id === startupChallengeId) || DAILY_CHALLENGES[0];
+    return (
+      <div className="overlay" role="presentation">
+        <section className="overlay-card startup-challenge" role="dialog" aria-modal="true" aria-label="Reto aleatorio">
+          <div className="overlay-head">
+            <div>
+              <h3>Reto aleatorio del dia</h3>
+              <span>{startupChallenge.participants} participantes activos</span>
+            </div>
+            <button type="button" className="icon-btn" onClick={closeStartupChallenge}>
+              <X size={16} />
+            </button>
+          </div>
+
+          <article className="startup-card">
+            <h4>{startupChallenge.title}</h4>
+            <p>{startupChallenge.description}</p>
+            <div className="metric-row">
+              <span>Recompensa</span>
+              <strong>{startupChallenge.rewardPoints} puntos</strong>
+            </div>
+          </article>
+
+          <div className="overlay-actions">
+            <button type="button" onClick={acceptStartupChallenge}>Aceptar</button>
+            <button type="button" className="soft-btn" onClick={changeStartupChallenge}>Cambiar</button>
+          </div>
+        </section>
+      </div>
+    );
+  }
+
+  function renderVideoReportOverlay() {
+    if (!showVideoReportOverlay) {
+      return null;
+    }
+
+    return (
+      <div className="overlay" role="presentation">
+        <section className="overlay-card report-overlay" role="dialog" aria-modal="true" aria-label="Reportar video">
+          <div className="overlay-head">
+            <div>
+              <h3>Reportar video</h3>
+              <span>Selecciona un motivo</span>
+            </div>
+            <button type="button" className="icon-btn" onClick={() => setShowVideoReportOverlay(false)}>
+              <X size={16} />
+            </button>
+          </div>
+
+          <div className="report-reason-list">
+            {VIDEO_REPORT_REASONS.map((reason) => (
+              <button key={reason} type="button" className={`report-reason-btn ${selectedReportReason === reason ? 'selected' : ''}`} onClick={() => setSelectedReportReason(reason)}>
+                {reason}
+              </button>
+            ))}
+          </div>
+
+          <div className="overlay-actions">
+            <button type="button" className="soft-btn" onClick={() => setShowVideoReportOverlay(false)}>Cancelar</button>
+            <button type="button" onClick={submitVideoReport}>Enviar reporte</button>
+          </div>
+        </section>
+      </div>
+    );
+  }
+
   async function handleAuthorizeAccess() {
     setLoadingAction('authorize');
     setPermissionsError('');
@@ -846,13 +1019,16 @@ function App() {
                     <Gift size={16} />
                     <span>Tokadrop</span>
                   </button>
-                  <button type="button" className="feed-icon-btn" aria-label="Perfil" onClick={() => setScreen('perfil')}>
-                    <CircleUserRound size={16} />
-                    <span>Perfil</span>
+                  <button type="button" className="feed-icon-btn" aria-label="Reportar" onClick={openVideoReport}>
+                    <Flag size={16} />
+                    <span>Reportar</span>
                   </button>
                 </div>
               </div>
             )}
+            <div className="feed-actions-bottom">
+              <button type="button" className="soft-btn" onClick={rotateFeedVideo}>Otro video aleatorio</button>
+            </div>
           </article>
         )}
       </div>
@@ -867,7 +1043,7 @@ function App() {
           <span>Semana 3</span>
         </div>
         <article className="glass-card reto-hero floating-card">
-          <div className="reto-logo"><img src={APP_LOGO_URL} alt="Logo Toka Ripple" /></div>
+          <div className={`reto-logo ${settingsState.logoMode === 'dark' ? 'logo-dark' : 'logo-lite'}`}><img src={APP_LOGO_URL} alt="Logo Toka Ripple" /></div>
           <h3>{selectedChallenge.title}</h3>
           <p>{selectedChallenge.description}</p>
           <div className="metric-row">
@@ -944,7 +1120,7 @@ function App() {
           <h2>Ranking</h2>
           <span>Esta semana</span>
         </div>
-        <article className="glass-card floating-card">
+        <article className="glass-card floating-card ranking-board">
           <div className="podium-grid">
             {orderedPodium.map((entry, index) => {
               const place = index === 0 ? 2 : index === 1 ? 1 : 3;
@@ -1037,7 +1213,7 @@ function App() {
         </div>
         <article className="glass-card floating-card">
           <div className="profile-head">
-            <div className="avatar"><img src={APP_LOGO_URL} alt="Logo Toka Ripple" /></div>
+            <div className={`avatar ${settingsState.logoMode === 'dark' ? 'logo-dark' : 'logo-lite'}`}><img src={APP_LOGO_URL} alt="Logo Toka Ripple" /></div>
             <div>
               <strong>{profileDisplay.name}</strong>
               <p>{walletState.streak} dias de racha</p>
@@ -1087,6 +1263,17 @@ function App() {
           </div>
           <div className="form-grid">
             <label>Nombre<input value={settingsState.profileName} placeholder="Agregar nombre" onChange={(event) => setSettingsState((current) => ({ ...current, profileName: event.target.value }))} /></label>
+          </div>
+          <div className="logo-mode-panel">
+            <span>Logo</span>
+            <div className="logo-mode-buttons">
+              <button type="button" className={`logo-mode-btn ${settingsState.logoMode === 'lite' ? 'active' : ''}`} onClick={() => setSettingsState((current) => ({ ...current, logoMode: 'lite' }))}>
+                <Sun size={14} /> Lite
+              </button>
+              <button type="button" className={`logo-mode-btn ${settingsState.logoMode === 'dark' ? 'active' : ''}`} onClick={() => setSettingsState((current) => ({ ...current, logoMode: 'dark' }))}>
+                <Moon size={14} /> Obscuro
+              </button>
+            </div>
           </div>
           <button type="button" onClick={() => pushActivity('Ajustes guardados', 'Configuracion actualizada.')}>Guardar ajustes</button>
         </article>
@@ -1147,7 +1334,7 @@ function App() {
       </div>
 
       <header className="header">
-        <div className="logo-chip"><img src={APP_LOGO_URL} alt="Logo Toka Ripple" /></div>
+        <div className={`logo-chip ${settingsState.logoMode === 'dark' ? 'logo-dark' : 'logo-lite'}`}><img src={APP_LOGO_URL} alt="Logo Toka Ripple" /></div>
         <div>
           <h1>Toka Ripple</h1>
           <p>Wallet social sin friccion</p>
@@ -1188,7 +1375,9 @@ function App() {
         })}
       </nav>
 
+      {renderStartupChallengeOverlay()}
       {renderChallengeGalleryOverlay()}
+      {renderVideoReportOverlay()}
 
       {showNotifications ? (
         <div className="overlay" role="presentation">
