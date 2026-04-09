@@ -47,7 +47,7 @@ function normalizeMerchantCode(rawMerchantCode) {
 }
 
 function buildHeaders({ accessToken, tokenType, merchantCode } = {}) {
-  const { appId, merchantCode: defaultMerchantCode } = getConfig();
+  const { appId } = getConfig();
   const headers = {
     'Content-Type': 'application/json',
     'X-App-Id': appId,
@@ -61,7 +61,7 @@ function buildHeaders({ accessToken, tokenType, merchantCode } = {}) {
       : `${normalizedType} ${normalizedToken}`;
   }
 
-  const normalizedMerchantCode = normalizeMerchantCode(merchantCode || defaultMerchantCode);
+  const normalizedMerchantCode = normalizeMerchantCode(merchantCode);
   if (normalizedMerchantCode) {
     headers['Alipay-MerchantCode'] = normalizedMerchantCode;
   }

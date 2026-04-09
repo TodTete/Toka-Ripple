@@ -191,6 +191,7 @@ app.post('/api/alipay/payment/create', validateBaseRequest, async (req, res) => 
   }
 
   try {
+    const config = getConfig();
     const result = await request('/v1/payment/create', {
       body: {
         userId: req.body.userId,
@@ -199,7 +200,7 @@ app.post('/api/alipay/payment/create', validateBaseRequest, async (req, res) => 
       },
       accessToken: req.body.accessToken,
       tokenType: req.body.tokenType,
-      merchantCode: req.body.merchantCode,
+      merchantCode: req.body.merchantCode || config.merchantCode,
     });
     return forwardResult(res, result);
   } catch (error) {
@@ -304,6 +305,7 @@ app.post('/api/alipay/payment/refund', validateBaseRequest, async (req, res) => 
   }
 
   try {
+    const config = getConfig();
     const result = await request('/v1/payment/refund', {
       body: {
         userId: req.body.userId,
@@ -312,7 +314,7 @@ app.post('/api/alipay/payment/refund', validateBaseRequest, async (req, res) => 
       },
       accessToken: req.body.accessToken,
       tokenType: req.body.tokenType,
-      merchantCode: req.body.merchantCode,
+      merchantCode: req.body.merchantCode || config.merchantCode,
     });
     return forwardResult(res, result);
   } catch (error) {
