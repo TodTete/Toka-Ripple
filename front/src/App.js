@@ -131,6 +131,42 @@ function formatErrorDetail(error, fallbackText) {
   }
 }
 
+async function collectProfileAuthCodes(primaryAuthCode) {
+  const profileAuthCodes = [primaryAuthCode];
+  const profileRequests = [
+    {
+      type: 'ContactInformation',
+      message: 'Toka Ripple needs your authorization to access your contact information for profile sync.',
+    },
+    {
+      type: 'AddressInformation',
+      message: 'Toka Ripple needs your authorization to access your address information for profile sync.',
+    },
+    {
+      type: 'PersonalInformation',
+      message: 'Toka Ripple needs your authorization to access your personal information for profile sync.',
+    },
+    {
+      type: 'KYCStatus',
+      message: 'Toka Ripple needs your authorization to access your KYC status for profile sync.',
+    },
+  ];
+
+  for (const requestItem of profileRequests) {
+    try {
+      const authResult = await requestAuthCode(requestItem.type, requestItem.message, true);
+      const authCode = extractAuthCodeFromBridgeResponse(authResult);
+      if (authCode) {
+        profileAuthCodes.push(authCode);
+      }
+    } catch {
+      // Optional feature grants may be missing; continue with the codes we already have.
+    }
+  }
+
+  return profileAuthCodes;
+}
+
 function App() {
   const [backendConfig, setBackendConfig] = useState(null);
   const [activeView, setActiveView] = useState('challenge');
@@ -300,26 +336,10 @@ function App() {
       setUserInfo({ userId: nextUserId });
 
       try {
-        const profileAuthCodes = [code];
-        let contactCode = '';
-
-        try {
-          const contactMessage = 'Toka Ripple needs your authorization to access your contact information for profile sync.';
-          const contactResult = await requestAuthCode('ContactInformation', contactMessage, true);
-          contactCode = extractAuthCodeFromBridgeResponse(contactResult);
-          if (contactCode) {
-            profileAuthCodes.push(contactCode);
-          }
-        } catch (contactError) {
-          pushActivity(
-            'Contacto opcional',
-            contactError?.message || 'No se pudo solicitar el auth code de contacto; se sincronizará solo identidad.'
-          );
-        }
-
+        const profileAuthCodes = await collectProfileAuthCodes(code);
         const userInfoResult = await getUserInfo(token, profileAuthCodes);
         setUserInfo(userInfoResult?.data || null);
-        setContactInfo(contactCode ? { authCode: contactCode } : null);
+        setContactInfo({ authCodes: profileAuthCodes.slice(1) });
       } catch (userInfoError) {
         pushActivity(
           'Perfil pendiente',
@@ -330,6 +350,12 @@ function App() {
       setDigitalIdentityAuthorized(true);
       setModalOpen(false);
       pushActivity('Sesión iniciada', 'Te has autenticado correctamente con tu cuenta Alipay.');
+      return {
+        token,
+        userId: nextUserId,
+        authCode: code,
+        profileAuthCodes: [],
+      };
     } catch (error) {
       const detail = formatErrorDetail(error, 'No se pudo obtener el código de autorización del puente Alipay.');
       const enrichedDetail = /denied|no permission|jsapi call denied/i.test(detail)
@@ -456,7 +482,37 @@ function App() {
         await openPayment(paymentUrl);
       }
     } catch (error) {
-      pushActivity('Pago fallido', error?.payload?.message || error.message || 'No se pudo crear el pago.');
+      if (error?.status === 401) {
+        pushActivity('Sesión expirada', 'Reautorizando antes de intentar crear el pago nuevamente.');
+        try {
+          await handleAuthorizeAccess();
+          const retryResult = await createPayment({
+            accessToken,
+            userId,
+            merchantCode: backendConfig?.merchantCodePrefix || paymentForm.merchantCode,
+            orderTitle: paymentForm.orderTitle,
+            orderAmount: {
+              value: paymentForm.orderAmount,
+              currency: 'USD',
+            },
+          });
+
+          const retryPaymentId = retryResult?.data?.paymentId || '';
+          const retryPaymentUrl = retryResult?.data?.paymentUrl || '';
+          setPaymentForm((current) => ({ ...current, paymentId: retryPaymentId }));
+
+          if (retryPaymentUrl && isAlipayWebView()) {
+            await openPayment(retryPaymentUrl);
+          }
+
+          pushActivity('Pago creado', 'La orden se creo correctamente tras reautenticación.');
+          return;
+        } catch (retryError) {
+          pushActivity('Pago fallido', retryError?.payload?.message || retryError.message || 'No se pudo crear el pago tras reautenticación.');
+        }
+      } else {
+        pushActivity('Pago fallido', error?.payload?.message || error.message || 'No se pudo crear el pago.');
+      }
     } finally {
       setLoadingAction('');
     }
@@ -465,17 +521,21 @@ function App() {
   async function handleAuthorizeAndPay() {
     setLoadingAction('authorize-pay');
     try {
-      if (!accessToken || !userId) {
-        throw new Error('Necesitas una sesión activa antes de autorizar un pago.');
-      }
-
       if (!backendConfig?.merchantCodePrefix) {
         throw new Error('No se cargó el merchant prefix del backend.');
       }
 
+      const refreshedSession = await handleAuthorizeAccess();
+      const paymentToken = refreshedSession?.token || accessToken;
+      const paymentUserId = refreshedSession?.userId || userId;
+
+      if (!paymentToken || !paymentUserId) {
+        throw new Error('Necesitas una sesión activa antes de autorizar un pago.');
+      }
+
       const result = await createPayment({
-        accessToken,
-        userId,
+        accessToken: paymentToken,
+        userId: paymentUserId,
         merchantCode: backendConfig.merchantCodePrefix,
         orderTitle: paymentForm.orderTitle,
         orderAmount: {
@@ -768,6 +828,9 @@ function App() {
             <div className="action-row wrap">
               <button type="button" onClick={handleAuthorizeAndPay} disabled={loadingAction === 'authorize-pay'}>
                 {loadingAction === 'authorize-pay' ? 'Autorizando pago...' : 'Autorizar y pagar'}
+              </button>
+              <button type="button" className="secondary" onClick={handleAuthorizeAccess} disabled={loadingAction === 'authorize'}>
+                Sincronizar perfil
               </button>
               <button type="button" onClick={handleCreatePayment} disabled={loadingAction === 'create-payment'}>
                 Crear pago
