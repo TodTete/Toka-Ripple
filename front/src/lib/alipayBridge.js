@@ -16,6 +16,42 @@ const AUTH_SCOPE_MAP = {
 
 const OAUTH_SCOPE_CANDIDATES = ['auth_user', 'auth_base'];
 
+function parseMaybeJson(value) {
+  if (!value || typeof value !== 'string') {
+    return null;
+  }
+
+  try {
+    return JSON.parse(value);
+  } catch {
+    return null;
+  }
+}
+
+export function extractAuthCodeFromBridgeResponse(response) {
+  const parsedResult = parseMaybeJson(response?.result);
+  const parsedData = parseMaybeJson(response?.data);
+
+  return (
+    response?.authCode ||
+    response?.authcode ||
+    response?.auth_code ||
+    response?.data?.authCode ||
+    response?.data?.authcode ||
+    response?.result?.authCode ||
+    response?.result?.authcode ||
+    response?.result?.data?.authCode ||
+    response?.result?.data?.authcode ||
+    parsedResult?.authCode ||
+    parsedResult?.authcode ||
+    parsedResult?.data?.authCode ||
+    parsedResult?.data?.authcode ||
+    parsedData?.authCode ||
+    parsedData?.authcode ||
+    ''
+  );
+}
+
 function isAlipayUserAgent() {
   if (typeof navigator === 'undefined') {
     return false;
@@ -103,6 +139,16 @@ function callBridgeByMethodOn(bridgeName, bridge, method, params, timeoutMs = 15
           return;
         }
 
+        if (/AuthCode$/i.test(method) && !extractAuthCodeFromBridgeResponse(response)) {
+          finish(
+            reject,
+            new Error(
+              `Bridge ${bridgeName} method ${method} returned success but no authCode in payload.`
+            )
+          );
+          return;
+        }
+
         finish(resolve, response);
       });
       return;
@@ -111,7 +157,19 @@ function callBridgeByMethodOn(bridgeName, bridge, method, params, timeoutMs = 15
     if (typeof bridge[method] === 'function') {
       bridge[method](
         Object.assign({}, params, {
-          success: (response) => finish(resolve, response),
+          success: (response) => {
+            if (/AuthCode$/i.test(method) && !extractAuthCodeFromBridgeResponse(response)) {
+              finish(
+                reject,
+                new Error(
+                  `Bridge ${bridgeName} method ${method} returned success but no authCode in payload.`
+                )
+              );
+              return;
+            }
+
+            finish(resolve, response);
+          },
           fail: (response) => finish(reject, normalizeBridgeError(method, response)),
         })
       );

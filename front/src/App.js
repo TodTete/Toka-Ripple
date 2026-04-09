@@ -9,7 +9,13 @@ import {
   inquiryRefund,
   refundPayment,
 } from './services/tokaApi';
-import { getBridgeRuntimeInfo, isAlipayWebView, openPayment, requestAuthCode } from './lib/alipayBridge';
+import {
+  extractAuthCodeFromBridgeResponse,
+  getBridgeRuntimeInfo,
+  isAlipayWebView,
+  openPayment,
+  requestAuthCode,
+} from './lib/alipayBridge';
 
 const SESSION_KEY = 'toka-ripple-session';
 
@@ -63,13 +69,9 @@ function safeParse(value, fallback) {
   }
 }
 
-function extractAuthCode(result) {
-  return result?.authCode || result?.authcode || result?.result?.authCode || result?.result?.authcode || '';
-}
-
 function extractJsapiExchange(result) {
   return {
-    authCode: extractAuthCode(result),
+    authCode: extractAuthCodeFromBridgeResponse(result),
     resultCode:
       result?.resultCode ||
       result?.result?.resultCode ||
@@ -88,6 +90,11 @@ function extractJsapiExchange(result) {
       result?.result?.startTime ||
       result?.time ||
       null,
+    rawResultShape: {
+      topKeys: Object.keys(result || {}),
+      hasResultAsString: typeof result?.result === 'string',
+      hasDataAsString: typeof result?.data === 'string',
+    },
   };
 }
 
