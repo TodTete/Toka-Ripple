@@ -218,6 +218,7 @@ function App() {
     setLoadingAction('authorize');
     setPermissionsError('');
     let rawExchange = null;
+    let latestAuthExchangeMeta = null;
     try {
       if (!isAlipayWebView()) {
         throw new Error('Esta función solo está disponible dentro de la SuperApp de Toka/Alipay.');
@@ -258,6 +259,7 @@ function App() {
 
       rawExchange = result || null;
       const exchange = extractJsapiExchange(rawExchange);
+      latestAuthExchangeMeta = exchange;
       setAuthExchangeMeta(exchange);
       setAuthExchangeRaw(rawExchange);
 
@@ -298,7 +300,7 @@ function App() {
       const diagnosticsPayload = {
         errorMessage: detail,
         runtimeInfo,
-        authExchangeMeta,
+        authExchangeMeta: latestAuthExchangeMeta,
         authExchangeRaw: rawExchange,
         attempts: error?.attempts || error?.causes?.map((item) => ({
           method: item?.method,
