@@ -1,4 +1,21 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
+import {
+  Activity,
+  ArrowRight,
+  BadgeCheck,
+  CircleUserRound,
+  CreditCard,
+  House,
+  LockKeyhole,
+  MessageSquareText,
+  RefreshCw,
+  ScrollText,
+  ShieldCheck,
+  TerminalSquare,
+  Trophy,
+  Wallet,
+} from 'lucide-react';
 import './App.css';
 import {
   authenticate,
@@ -58,6 +75,21 @@ const COMMUNITY_ITEMS = [
     title: 'Comparte y compite',
     body: 'Cada accion suma puntos que luego pueden usarse para recompensas o contenido.',
   },
+];
+
+const RANKING_SEED = [
+  { id: 'rk-1', name: 'Ana Sofia', points: 5200, streak: 26 },
+  { id: 'rk-2', name: 'Valentina', points: 4410, streak: 21 },
+  { id: 'rk-3', name: 'Carlos M', points: 3980, streak: 18 },
+  { id: 'rk-4', name: 'Lucia P', points: 3300, streak: 16 },
+];
+
+const NAV_ITEMS = [
+  { id: 'home', label: 'Inicio', icon: House },
+  { id: 'feed', label: 'Feed', icon: MessageSquareText },
+  { id: 'ranking', label: 'Ranking', icon: Trophy },
+  { id: 'wallet', label: 'Wallet', icon: Wallet },
+  { id: 'profile', label: 'Perfil', icon: CircleUserRound },
 ];
 
 function safeParse(value, fallback) {
@@ -169,12 +201,12 @@ async function collectProfileAuthCodes(primaryAuthCode) {
 
 function App() {
   const [backendConfig, setBackendConfig] = useState(null);
-  const [activeView, setActiveView] = useState('challenge');
+  const [activeView, setActiveView] = useState('home');
   const [modalOpen, setModalOpen] = useState(false);
   const [loadingAction, setLoadingAction] = useState('');
   const [message, setMessage] = useState({
     title: 'Base lista',
-    detail: 'La aplicacion ya tiene auth, usuario, pago y reembolso conectados al backend.',
+    detail: 'La aplicacion ya tiene auth, usuario y pagos conectados al backend.',
   });
   const [activityLog, setActivityLog] = useState([]);
   const [authCode, setAuthCode] = useState('');
@@ -259,6 +291,18 @@ function App() {
       })
     );
   }, [accessToken, tokenType, userId, authCode, userInfo, contactInfo, paymentForm, walletState]);
+
+  const rankingItems = useMemo(() => {
+    const me = {
+      id: 'rk-me',
+      name: userInfo?.nickName || userInfo?.fullName || 'Tu perfil',
+      points: walletState.points,
+      streak: walletState.streak,
+      isMe: true,
+    };
+
+    return [...RANKING_SEED, me].sort((a, b) => b.points - a.points);
+  }, [userInfo, walletState.points, walletState.streak]);
 
   function pushActivity(title, detail) {
     setActivityLog((current) => [{ id: `${Date.now()}-${current.length}`, title, detail }, ...current].slice(0, 6));
@@ -354,7 +398,7 @@ function App() {
 
       setDigitalIdentityAuthorized(true);
       setModalOpen(false);
-      pushActivity('Sesión iniciada', 'Te has autenticado correctamente con tu cuenta Alipay.');
+      pushActivity('Sesion iniciada', 'Te has autenticado correctamente con tu cuenta Alipay.');
       return {
         token,
         tokenType: authTokenType,
@@ -541,25 +585,268 @@ function App() {
     }
   }
 
-  const selectedChallenge = DAILY_CHALLENGES.find((item) => item.id === walletState.selectedChallengeId) || DAILY_CHALLENGES[0];
+  const selectedChallenge =
+    DAILY_CHALLENGES.find((item) => item.id === walletState.selectedChallengeId) || DAILY_CHALLENGES[0];
+
+  function renderHomeView() {
+    return (
+      <>
+        <article className="surface-card hero-card">
+          <div className="card-topline">Reto activo</div>
+          <h2>{selectedChallenge.title}</h2>
+          <p>{selectedChallenge.description}</p>
+          <div className="metric-grid">
+            <div>
+              <strong>{walletState.points}</strong>
+              <span>Puntos</span>
+            </div>
+            <div>
+              <strong>{walletState.streak}</strong>
+              <span>Racha</span>
+            </div>
+            <div>
+              <strong>{walletState.completedChallengeIds.length}</strong>
+              <span>Retos</span>
+            </div>
+          </div>
+          <div className="action-row">
+            <button type="button" className="btn-soft" onClick={() => setModalOpen(true)}>
+              Ver detalles
+            </button>
+            <button type="button" className="btn-soft" onClick={handleChallengeChange}>
+              Cambiar
+            </button>
+            <button type="button" onClick={handleChallengeAccept}>
+              Aceptar reto
+            </button>
+          </div>
+        </article>
+
+        <article className="surface-card session-card">
+          <div className="card-topline">Estado de sesion</div>
+          <h3>Acceso y sincronizacion</h3>
+          <div className="session-list">
+            <div>
+              <BadgeCheck size={16} />
+              <span>{userId ? 'Usuario autenticado' : 'Usuario pendiente'}</span>
+            </div>
+            <div>
+              <LockKeyhole size={16} />
+              <span>{accessToken ? 'JWT activo' : 'JWT pendiente'}</span>
+            </div>
+            <div>
+              <ShieldCheck size={16} />
+              <span>{isAlipayWebView() ? 'Contenedor Toka detectado' : 'Modo navegador detectado'}</span>
+            </div>
+          </div>
+          <div className="action-row">
+            <button type="button" onClick={handleAuthorizeAccess} disabled={loadingAction === 'authorize'}>
+              {loadingAction === 'authorize' ? 'Autorizando...' : 'Autorizar acceso'}
+            </button>
+            <button type="button" className="btn-soft" onClick={() => setActiveView('wallet')}>
+              Ir a wallet
+            </button>
+          </div>
+        </article>
+      </>
+    );
+  }
+
+  function renderFeedView() {
+    return (
+      <article className="surface-card">
+        <div className="card-topline">Comunidad</div>
+        <h3>Feed de actividad</h3>
+        <div className="feed-stack">
+          {COMMUNITY_ITEMS.map((item) => (
+            <div key={item.id} className="feed-card">
+              <div className="feed-meta">{item.author}</div>
+              <strong>{item.title}</strong>
+              <p>{item.body}</p>
+            </div>
+          ))}
+        </div>
+      </article>
+    );
+  }
+
+  function renderRankingView() {
+    return (
+      <article className="surface-card">
+        <div className="card-topline">Competencia</div>
+        <h3>Tabla de ranking</h3>
+        <div className="ranking-list">
+          {rankingItems.map((entry, index) => (
+            <div key={entry.id} className={`rank-row ${entry.isMe ? 'is-me' : ''}`}>
+              <div className="rank-num">#{index + 1}</div>
+              <div className="rank-user">
+                <strong>{entry.name}</strong>
+                <span>{entry.streak} dias de racha</span>
+              </div>
+              <div className="rank-points">{entry.points}</div>
+            </div>
+          ))}
+        </div>
+      </article>
+    );
+  }
+
+  function renderWalletView() {
+    return (
+      <>
+        <article className="surface-card">
+          <div className="card-topline">Wallet Toka</div>
+          <h3>Pago y gestion de orden</h3>
+          <p className="muted-copy">La API de pago usa prefijo de 5 caracteres para el header de merchant.</p>
+
+          <div className="form-grid">
+            <label>
+              Merchant completo
+              <input value={backendConfig?.merchantCode || 'Cargando merchant id...'} readOnly />
+            </label>
+
+            <label>
+              Merchant prefix
+              <input value={backendConfig?.merchantCodePrefix || paymentForm.merchantCode} readOnly />
+            </label>
+
+            <label>
+              Titulo de orden
+              <input
+                value={paymentForm.orderTitle}
+                onChange={(event) => setPaymentForm((current) => ({ ...current, orderTitle: event.target.value }))}
+              />
+            </label>
+
+            <label>
+              Monto
+              <input
+                value={paymentForm.orderAmount}
+                onChange={(event) => setPaymentForm((current) => ({ ...current, orderAmount: event.target.value }))}
+              />
+            </label>
+
+            <label>
+              Moneda
+              <input value="USD" readOnly />
+            </label>
+          </div>
+
+          <div className="action-row action-grid">
+            <button type="button" onClick={handleAuthorizeAndPay} disabled={loadingAction === 'authorize-pay'}>
+              <CreditCard size={16} />
+              <span>{loadingAction === 'authorize-pay' ? 'Autorizando pago...' : 'Autorizar y pagar'}</span>
+            </button>
+
+            <button
+              type="button"
+              className="btn-soft"
+              onClick={handleInquiryPayment}
+              disabled={loadingAction === 'inquiry-payment' || !paymentForm.paymentId}
+            >
+              <ScrollText size={16} />
+              <span>Consultar pago</span>
+            </button>
+
+            <button
+              type="button"
+              className="btn-soft"
+              onClick={handleClosePayment}
+              disabled={loadingAction === 'close-payment' || !paymentForm.paymentId}
+            >
+              <LockKeyhole size={16} />
+              <span>Cerrar pago</span>
+            </button>
+
+            <button type="button" className="btn-soft" onClick={handleAuthorizeAccess} disabled={loadingAction === 'authorize'}>
+              <RefreshCw size={16} />
+              <span>Sincronizar perfil</span>
+            </button>
+          </div>
+        </article>
+
+        <article className="surface-card compact-card">
+          <div className="card-topline">Operacion</div>
+          <div className="metric-grid tiny">
+            <div>
+              <strong>{userId ? 'Activo' : 'Inactivo'}</strong>
+              <span>Sesion</span>
+            </div>
+            <div>
+              <strong>{paymentForm.paymentId ? '1' : '0'}</strong>
+              <span>Pagos abiertos</span>
+            </div>
+            <div>
+              <strong>{backendConfig?.appId || '---'}</strong>
+              <span>App ID</span>
+            </div>
+          </div>
+        </article>
+      </>
+    );
+  }
+
+  function renderProfileView() {
+    return (
+      <>
+        <article className="surface-card">
+          <div className="card-topline">Identidad</div>
+          <h3>Perfil sincronizado</h3>
+          <div className="profile-heading">
+            <CircleUserRound size={22} />
+            <div>
+              <strong>{userInfo?.fullName || userInfo?.nickName || userInfo?.userId || userId || 'Perfil no sincronizado'}</strong>
+              <span>{userInfo?.email || userInfo?.mobilePhone || 'Sin email o telefono disponible'}</span>
+            </div>
+          </div>
+
+          <div className="profile-grid">
+            <div>
+              <span>ID</span>
+              <strong>{userInfo?.userId || userId || 'No disponible'}</strong>
+            </div>
+            <div>
+              <span>Email</span>
+              <strong>{userInfo?.email || 'No disponible'}</strong>
+            </div>
+            <div>
+              <span>Telefono</span>
+              <strong>{userInfo?.mobilePhone || 'No disponible'}</strong>
+            </div>
+            <div>
+              <span>Token</span>
+              <strong>{accessToken ? 'Activo' : 'No disponible'}</strong>
+            </div>
+          </div>
+        </article>
+
+        <article className="surface-card">
+          <div className="card-topline">Debug</div>
+          <h3>Estado tecnico</h3>
+          <pre>{JSON.stringify({ userInfo, contactInfo, bridgeDiagnostics }, null, 2)}</pre>
+        </article>
+      </>
+    );
+  }
 
   if (!permissionsGatePassed) {
     return (
-      <main className="app-shell">
-        <section className="permissions-layout">
-          <article className="panel">
-            <p className="panel-tag">Sección de permisos</p>
-            <h1>Autoriza tu acceso antes de continuar</h1>
-            <p>
-              Para iniciar sesión necesitamos tu autorización de DigitalIdentity dentro de la SuperApp.
-            </p>
+      <main className="app-root gate-root">
+        <div className="ambient ambient-a" />
+        <div className="ambient ambient-b" />
+        <section className="gate-shell">
+          <article className="surface-card gate-card">
+            <div className="card-topline">Permisos iniciales</div>
+            <h1>Activa tu acceso para entrar a Toka Ripple</h1>
+            <p>Necesitamos autorizacion de DigitalIdentity y aceptacion de terminos para iniciar sesion.</p>
 
             <div className="permission-item">
-              <div>
-                <strong>DigitalIdentity</strong>
-                <p className="permission-help">
-                  Permisos: USER_ID, USER_AVATAR y USER_NICKNAME.
-                </p>
+              <div className="permission-copy">
+                <ShieldCheck size={18} />
+                <div>
+                  <strong>DigitalIdentity</strong>
+                  <p>Permisos: USER_ID, USER_AVATAR, USER_NICKNAME.</p>
+                </div>
               </div>
               <div className="permission-actions">
                 <span className={digitalIdentityAuthorized ? 'permission-ok' : 'permission-pending'}>
@@ -578,22 +865,16 @@ function App() {
                   checked={termsAccepted}
                   onChange={(event) => setTermsAccepted(event.target.checked)}
                 />
-                Acepto términos y condiciones
+                Acepto terminos y condiciones
               </label>
             </div>
 
             {permissionsError ? <p className="error-banner">{permissionsError}</p> : null}
 
-            {bridgeDiagnostics ? (
-              <div className="diagnostic-box">
-                <p className="terms-legend">Diagnóstico técnico</p>
-                <pre>{bridgeDiagnostics}</pre>
-              </div>
-            ) : null}
-
-            <div className="action-row wrap">
+            <div className="action-row">
               <button type="button" onClick={handleContinueFromPermissions}>
-                {digitalIdentityAuthorized && termsAccepted ? 'Continuar' : 'Continuar (bloqueado)'}
+                <ArrowRight size={16} />
+                <span>{digitalIdentityAuthorized && termsAccepted ? 'Continuar' : 'Continuar bloqueado'}</span>
               </button>
             </div>
           </article>
@@ -603,237 +884,59 @@ function App() {
   }
 
   return (
-    <main className="app-shell">
-      <header className="top-bar">
+    <main className="app-root">
+      <div className="ambient ambient-a" />
+      <div className="ambient ambient-b" />
+
+      <header className="app-header">
         <div>
-          <p className="eyebrow">Toka Ripple</p>
-          <h1>Mini App de entretenimiento y wallet</h1>
+          <p className="brand-kicker">Toka Ripple</p>
+          <h1>Social wallet experiencial</h1>
         </div>
-        <div className="status-strip">
-          <span>{userId ? `✓ Conectado` : '○ Conectando...'}</span>
-          <span>{backendConfig ? `Backend OK` : 'Backend...'}</span>
-          <span>{isAlipayWebView() ? 'Dentro de Toka' : 'H5'}</span>
+        <div className="header-pills">
+          <span>{userId ? 'Conectado' : 'Sin sesion'}</span>
+          <span>{backendConfig ? 'Backend OK' : 'Backend...'}</span>
+          <span>{isAlipayWebView() ? 'SuperApp' : 'H5'}</span>
         </div>
       </header>
 
-      <nav className="view-tabs" aria-label="Navegacion principal">
-        <button type="button" className={activeView === 'challenge' ? 'active' : ''} onClick={() => setActiveView('challenge')}>
-          Inicio
-        </button>
-        <button type="button" className={activeView === 'wallet' ? 'active' : ''} onClick={() => setActiveView('wallet')}>
-          Wallet
-        </button>
-      </nav>
+      <section className="content-shell">
+        <AnimatePresence mode="wait">
+          <motion.section
+            key={activeView}
+            className="view-grid"
+            initial={{ opacity: 0, y: 18 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -12 }}
+            transition={{ duration: 0.2, ease: 'easeOut' }}
+          >
+            {activeView === 'home' ? renderHomeView() : null}
+            {activeView === 'feed' ? renderFeedView() : null}
+            {activeView === 'ranking' ? renderRankingView() : null}
+            {activeView === 'wallet' ? renderWalletView() : null}
+            {activeView === 'profile' ? renderProfileView() : null}
+          </motion.section>
+        </AnimatePresence>
+      </section>
 
-      {activeView === 'challenge' ? (
-        <section className="two-column-layout">
-          <article className="panel">
-            <p className="panel-tag">Reto diario</p>
-            <h2>{selectedChallenge.title}</h2>
-            <p>{selectedChallenge.description}</p>
-
-            <div className="mini-metrics">
-              <div>
-                <strong>{walletState.points}</strong>
-                <span>Puntos</span>
-              </div>
-              <div>
-                <strong>{walletState.streak}</strong>
-                <span>Racha</span>
-              </div>
-              <div>
-                <strong>{walletState.completedChallengeIds.length}</strong>
-                <span>Retos</span>
-              </div>
-            </div>
-
-            <div className="action-row">
-              <button type="button" className="secondary" onClick={() => setModalOpen(true)}>
-                Ver reto
-              </button>
-              <button type="button" onClick={handleChallengeChange} disabled={loadingAction === 'challenge'}>
-                Cambiar reto
-              </button>
-              <button type="button" className="secondary" onClick={handleChallengeAccept} disabled={loadingAction === 'challenge'}>
-                Aceptar reto
-              </button>
-              <button type="button" onClick={handleAuthorizeAccess} disabled={loadingAction === 'authorize'}>
-                Autorizar acceso
-              </button>
-              <button type="button" className="secondary" onClick={() => setActiveView('wallet')}>
-                Ir a wallet
-              </button>
-            </div>
-          </article>
-
-          <article className="panel">
-            <p className="panel-tag">Estado de sesion</p>
-            <h2>Conectado a Toka</h2>
-            <p>
-              La sesión requiere tu autorización explícita dentro de la SuperApp para obtener authCode y JWT.
-            </p>
-
-            <div className="mini-metrics">
-              <div>
-                <strong>{userId ? '✓' : '○'}</strong>
-                <span>Usuario</span>
-              </div>
-              <div>
-                <strong>{accessToken ? '✓' : '○'}</strong>
-                <span>Token</span>
-              </div>
-              <div>
-                <strong>{userInfo?.nickName ? '✓' : '○'}</strong>
-                <span>Perfil</span>
-              </div>
-            </div>
-
-            <div className="identity-box">
-              <strong>{userInfo?.nickName || userInfo?.fullName || 'Cargando...'}</strong>
-              <span>{userInfo?.email || userInfo?.mobilePhone || 'Sincronizando datos'}</span>
-            </div>
-          </article>
-
-          <article className="panel full-span">
-            <p className="panel-tag">Contenido social</p>
-            <div className="feed-list">
-              {COMMUNITY_ITEMS.map((item) => (
-                <div key={item.id} className="feed-item">
-                  <strong>{item.title}</strong>
-                  <span>{item.author}</span>
-                  <p>{item.body}</p>
-                </div>
-              ))}
-            </div>
-          </article>
-        </section>
-      ) : (
-        <section className="two-column-layout">
-          <article className="panel">
-            <p className="panel-tag">Wallet Toka</p>
-            <h2>Tu cartera y transacciones</h2>
-            <p>
-                  Gestiona tus pagos con cero fricción directamente desde Toka.
-            </p>
-
-            <div className="mini-metrics">
-              <div>
-                <strong>{userId ? 'Activo' : 'Inactivo'}</strong>
-                <span>Sesion</span>
-              </div>
-              <div>
-                <strong>{paymentForm.paymentId ? '1' : '0'}</strong>
-                <span>Pagos</span>
-              </div>
-            </div>
-
-            <div className="form-grid">
-              <label>
-                Merchant ID completo
-                <input
-                  value={backendConfig?.merchantCode || 'Cargando merchant ID...'}
-                  readOnly
-                />
-              </label>
-
-              <label>
-                Merchant prefix usado en pagos
-                <input 
-                  value={backendConfig?.merchantCodePrefix || paymentForm.merchantCode} 
-                  readOnly
-                  placeholder="30100" 
-                  maxLength={5} 
-                />
-              </label>
-
-              <label>
-                Titulo de orden
-                <input 
-                  value={paymentForm.orderTitle} 
-                  onChange={(event) => setPaymentForm((current) => ({ ...current, orderTitle: event.target.value }))} 
-                />
-              </label>
-
-              <label>
-                Monto
-                <input 
-                  value={paymentForm.orderAmount} 
-                  onChange={(event) => setPaymentForm((current) => ({ ...current, orderAmount: event.target.value }))} 
-                />
-              </label>
-
-              <label>
-                Moneda
-                <input 
-                  value="USD"
-                  readOnly
-                />
-              </label>
-            </div>
-
-            <p className="permission-help">
-              La API de pago usa solo el prefijo de 5 caracteres. El ID completo se muestra arriba como referencia.
-            </p>
-
-            <div className="action-row wrap">
-              <button type="button" onClick={handleAuthorizeAndPay} disabled={loadingAction === 'authorize-pay'}>
-                {loadingAction === 'authorize-pay' ? 'Autorizando pago...' : 'Autorizar y pagar'}
-              </button>
-              <button type="button" className="secondary" onClick={handleAuthorizeAccess} disabled={loadingAction === 'authorize'}>
-                Sincronizar perfil
-              </button>
-              <button
-                type="button"
-                className="secondary"
-                onClick={handleInquiryPayment}
-                disabled={loadingAction === 'inquiry-payment' || !paymentForm.paymentId}
-              >
-                Consultar pago
-              </button>
-              <button
-                type="button"
-                className="secondary"
-                onClick={handleClosePayment}
-                disabled={loadingAction === 'close-payment' || !paymentForm.paymentId}
-              >
-                Cerrar pago
-              </button>
-            </div>
-          </article>
-
-          <article className="panel">
-            <p className="panel-tag">Tu Identidad</p>
-            <h2>Datos de perfil sincronizados</h2>
-            <p>Información verificada y segura desde Toka.</p>
-
-            <div className="identity-box">
-              <strong>{userInfo?.fullName || userInfo?.nickName || userInfo?.userId || userId || 'Perfil no sincronizado'}</strong>
-              <span>{userInfo?.email || userInfo?.mobilePhone || 'Sin email/teléfono disponible'}</span>
-              <div className="profile-summary">
-                <span>ID: {userInfo?.userId || userId || 'No disponible'}</span>
-                <span>Email: {userInfo?.email || 'No disponible'}</span>
-                <span>Teléfono: {userInfo?.mobilePhone || 'No disponible'}</span>
-              </div>
-              <pre style={{marginTop: '1rem', fontSize: '0.85rem', maxHeight: '200px', overflow: 'auto'}}>
-                {JSON.stringify({ ...userInfo, contactInfo }, null, 2)}
-              </pre>
-            </div>
-          </article>
-        </section>
-      )}
-
-      <section className="log-panel">
-        <article className="panel">
-          <p className="panel-tag">Resumen tecnico</p>
-          <h2>{message.title}</h2>
+      <section className="log-shell">
+        <article className="surface-card">
+          <div className="card-topline">
+            <TerminalSquare size={15} />
+            <span>Resumen tecnico</span>
+          </div>
+          <h3>{message.title}</h3>
           <pre>{message.detail}</pre>
         </article>
 
-        <article className="panel">
-          <p className="panel-tag">Actividad reciente</p>
+        <article className="surface-card">
+          <div className="card-topline">
+            <Activity size={15} />
+            <span>Actividad reciente</span>
+          </div>
           <div className="log-list">
             {activityLog.length === 0 ? (
-              <p>Aqui apareceran los eventos de autenticacion, retos y pagos.</p>
+              <p className="muted-copy">Aqui apareceran eventos de autenticacion, perfil y pagos.</p>
             ) : (
               activityLog.map((entry) => (
                 <div key={entry.id} className="log-item">
@@ -846,25 +949,35 @@ function App() {
         </article>
       </section>
 
+      <nav className="bottom-nav" aria-label="Navegacion principal">
+        {NAV_ITEMS.map((item) => {
+          const Icon = item.icon;
+          return (
+            <button
+              key={item.id}
+              type="button"
+              className={activeView === item.id ? 'active' : ''}
+              onClick={() => setActiveView(item.id)}
+            >
+              <Icon size={18} />
+              <span>{item.label}</span>
+            </button>
+          );
+        })}
+      </nav>
+
       {modalOpen ? (
         <div className="modal-backdrop" role="presentation">
           <section className="modal-card" role="dialog" aria-modal="true" aria-label="Reto diario">
-            <p className="panel-tag">Reto diario</p>
+            <div className="card-topline">Reto diario</div>
             <h2>{selectedChallenge.title}</h2>
             <p>{selectedChallenge.description}</p>
             <p className="reward-line">Recompensa: {selectedChallenge.reward}</p>
-
-            <div className="action-row wrap">
-              <button type="button" className="secondary" onClick={() => setModalOpen(false)}>
+            <div className="action-row">
+              <button type="button" className="btn-soft" onClick={() => setModalOpen(false)}>
                 Cerrar
               </button>
-              <button
-                type="button"
-                onClick={() => {
-                  handleAuthorizeAccess();
-                }}
-                disabled={loadingAction === 'authorize'}
-              >
+              <button type="button" onClick={handleAuthorizeAccess} disabled={loadingAction === 'authorize'}>
                 {loadingAction === 'authorize' ? 'Autorizando...' : 'Autorizar DigitalIdentity'}
               </button>
             </div>
