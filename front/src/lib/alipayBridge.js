@@ -66,6 +66,10 @@ function findAuthCodeDeep(value, depth = 0) {
     return '';
   }
 
+  if (typeof value === 'number') {
+    return '';
+  }
+
   if (Array.isArray(value)) {
     for (const item of value) {
       const nested = findAuthCodeDeep(item, depth + 1);
@@ -95,6 +99,11 @@ function findAuthCodeDeep(value, depth = 0) {
   return '';
 }
 
+function isLikelySuccessfulExchange(response) {
+  const resultCode = String(response?.resultCode || response?.result?.resultCode || '').trim();
+  return /^(10000|20000000|0|S|OK)$/i.test(resultCode) || /success|ok/i.test(String(response?.resultMsg || response?.message || ''));
+}
+
 export function extractAuthCodeFromBridgeResponse(response) {
   const parsedResult = parseMaybeJson(response?.result);
   const parsedData = parseMaybeJson(response?.data);
@@ -121,6 +130,7 @@ export function extractAuthCodeFromBridgeResponse(response) {
     queryResult?.authcode ||
     queryData?.authCode ||
     queryData?.authcode ||
+    (typeof response?.result === 'string' && response.result.trim() && isLikelySuccessfulExchange(response) ? response.result.trim() : '') ||
     findAuthCodeDeep(response) ||
     ''
   );
