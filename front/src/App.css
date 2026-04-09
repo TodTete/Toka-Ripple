@@ -4,7 +4,7 @@
   --bg0: #09080f;
   --bg1: #11101f;
   --bg2: #1a1630;
-  --card: rgba(21, 18, 39, 0.74);
+  --card: rgba(21, 18, 39, 0.78);
   --card-border: rgba(255, 255, 255, 0.12);
   --copy: #f5f2ff;
   --copy-dim: #c1b9d9;
@@ -44,6 +44,10 @@ body,
   overflow: hidden;
 }
 
+.app-root.compact {
+  font-size: 0.93rem;
+}
+
 .ambient {
   position: absolute;
   border-radius: 999px;
@@ -53,8 +57,8 @@ body,
 }
 
 .ambient-a {
-  width: 280px;
-  height: 280px;
+  width: 290px;
+  height: 290px;
   top: -90px;
   left: -65px;
   background: radial-gradient(circle, rgba(255, 153, 62, 0.4), rgba(255, 153, 62, 0));
@@ -97,7 +101,8 @@ body,
 
 .app-header h1,
 .surface-card h2,
-.surface-card h3 {
+.surface-card h3,
+.surface-card h4 {
   margin: 0;
   font-family: 'Sora', 'Segoe UI', sans-serif;
   font-weight: 700;
@@ -126,8 +131,12 @@ body,
 .profile-grid,
 .metric-grid,
 .action-row,
-.session-list,
-.log-list {
+.log-list,
+.settings-list,
+.challenge-list,
+.alerts-list,
+.gifts-list,
+.trivia-options {
   display: grid;
   gap: 12px;
 }
@@ -150,17 +159,37 @@ body,
 
 .surface-card p,
 .muted-copy,
-.session-list span,
 .feed-card p,
 .feed-meta,
 .rank-user span,
-.log-item span {
+.log-item span,
+.challenge-card p,
+.alert-card p,
+.home-feed-preview p {
   color: var(--copy-dim);
 }
 
 .metric-grid {
   grid-template-columns: repeat(3, minmax(0, 1fr));
   margin: 14px 0;
+}
+
+.metric-grid > div {
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.03);
+  padding: 12px;
+  display: grid;
+  gap: 4px;
+}
+
+.metric-grid strong {
+  font-family: 'Sora', 'Segoe UI', sans-serif;
+  font-size: 1.2rem;
+}
+
+.metric-grid.tiny strong {
+  font-size: 0.95rem;
 }
 
 .story-row {
@@ -178,27 +207,31 @@ body,
   background: linear-gradient(120deg, rgba(143, 123, 255, 0.25), rgba(50, 217, 196, 0.2));
 }
 
-.metric-grid > div {
-  border: 1px solid rgba(255, 255, 255, 0.11);
-  border-radius: var(--radius-md);
+.home-switch {
+  display: inline-flex;
+  border: 1px solid rgba(255, 255, 255, 0.14);
   background: rgba(255, 255, 255, 0.03);
-  padding: 12px;
+  border-radius: 999px;
+  padding: 4px;
+  margin-bottom: 10px;
+}
+
+.home-switch button {
+  background: transparent;
+  color: var(--copy-dim);
+  border: 0;
+  border-radius: 999px;
+  padding: 8px 14px;
+  font-size: 0.82rem;
+}
+
+.home-switch button.active {
+  background: linear-gradient(130deg, var(--accent-a), var(--accent-b));
+  color: #1a1426;
+}
+
+.home-feed-preview {
   display: grid;
-  gap: 4px;
-}
-
-.metric-grid strong {
-  font-family: 'Sora', 'Segoe UI', sans-serif;
-  font-size: 1.3rem;
-}
-
-.metric-grid.tiny strong {
-  font-size: 0.95rem;
-}
-
-.session-list > div {
-  display: flex;
-  align-items: center;
   gap: 8px;
 }
 
@@ -206,7 +239,12 @@ body,
 .rank-row,
 .log-item,
 .permission-item,
-.terms-box {
+.terms-box,
+.challenge-card,
+.alert-card,
+.gift-card,
+.setting-row,
+.trivia-shell {
   border: 1px solid rgba(255, 255, 255, 0.11);
   border-radius: var(--radius-md);
   background: rgba(255, 255, 255, 0.03);
@@ -214,13 +252,169 @@ body,
 }
 
 .feed-card,
-.log-item {
+.log-item,
+.challenge-card,
+.alert-card,
+.gift-card {
   animation: fade-up 0.22s ease both;
 }
 
 .feed-meta {
   font-size: 0.8rem;
   margin-bottom: 3px;
+}
+
+.infinite-feed {
+  margin-top: 8px;
+  max-height: 420px;
+  overflow: auto;
+  padding-right: 4px;
+  display: grid;
+  gap: 10px;
+}
+
+.infinite-feed::-webkit-scrollbar {
+  width: 6px;
+}
+
+.infinite-feed::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.feed-status {
+  text-align: center;
+  color: var(--copy-dim);
+  font-size: 0.8rem;
+  padding: 6px;
+}
+
+.challenge-card.is-active {
+  border-color: rgba(255, 176, 77, 0.65);
+  box-shadow: inset 0 0 0 1px rgba(255, 176, 77, 0.3);
+}
+
+.challenge-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.challenge-reward {
+  color: #ffd183;
+  font-size: 0.83rem;
+  font-weight: 700;
+}
+
+.challenge-state {
+  padding: 6px 8px;
+  border-radius: 999px;
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.challenge-state.done {
+  color: #aff6cb;
+  border: 1px solid var(--ok-bd);
+  background: var(--ok-bg);
+}
+
+.challenge-state.pending {
+  color: #ffdca9;
+  border: 1px solid var(--wait-bd);
+  background: var(--wait-bg);
+}
+
+.trivia-shell {
+  margin-top: 10px;
+  display: grid;
+  gap: 10px;
+}
+
+.trivia-stats {
+  display: grid;
+  gap: 5px;
+  font-size: 0.85rem;
+  color: var(--copy-dim);
+}
+
+.trivia-counter {
+  color: #ffd489;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.trivia-options {
+  gap: 8px;
+}
+
+.trivia-option {
+  text-align: left;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--copy);
+  padding: 10px 12px;
+  font-weight: 600;
+}
+
+.trivia-option.correct {
+  border-color: var(--ok-bd);
+  background: var(--ok-bg);
+}
+
+.trivia-option.wrong {
+  border-color: var(--danger-bd);
+  background: var(--danger-bg);
+}
+
+.trivia-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  color: var(--copy-dim);
+}
+
+.ranking-shell {
+  overflow: hidden;
+}
+
+.podium {
+  margin: 10px 0 14px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  align-items: end;
+}
+
+.podium-item {
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 14px 14px 8px 8px;
+  padding: 10px 8px;
+  text-align: center;
+  display: grid;
+  gap: 2px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.podium-item.p-1 {
+  height: 112px;
+}
+
+.podium-item.p-2 {
+  height: 132px;
+  border-color: rgba(255, 193, 99, 0.55);
+}
+
+.podium-item.p-3 {
+  height: 96px;
+}
+
+.podium-rank {
+  color: #ffd489;
+  font-weight: 700;
 }
 
 .rank-row {
@@ -245,63 +439,31 @@ body,
   font-weight: 700;
 }
 
-.challenge-list,
-.alerts-list {
-  display: grid;
-  gap: 10px;
-}
-
-.challenge-card,
-.alert-card {
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: var(--radius-md);
-  background: rgba(255, 255, 255, 0.03);
-  padding: 12px;
-  display: grid;
-  gap: 8px;
-}
-
-.challenge-card.is-active {
-  border-color: rgba(255, 176, 77, 0.65);
-  box-shadow: inset 0 0 0 1px rgba(255, 176, 77, 0.3);
-}
-
-.challenge-card p,
-.alert-card p {
-  margin: 6px 0 0;
+.gift-header {
+  margin-top: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   color: var(--copy-dim);
 }
 
-.challenge-reward {
-  color: #ffd183;
-  font-size: 0.83rem;
-  font-weight: 700;
+.gift-header strong {
+  color: #ffd489;
+  font-family: 'Sora', 'Segoe UI', sans-serif;
 }
 
-.challenge-actions {
-  display: flex;
-  justify-content: space-between;
+.gift-card {
+  display: grid;
+  grid-template-columns: 1fr auto;
   align-items: center;
   gap: 10px;
 }
 
-.challenge-state {
-  padding: 6px 8px;
-  border-radius: 999px;
-  font-size: 0.76rem;
-  font-weight: 700;
-}
-
-.challenge-state.done {
-  color: #aff6cb;
-  border: 1px solid var(--ok-bd);
-  background: var(--ok-bg);
-}
-
-.challenge-state.pending {
-  color: #ffdca9;
-  border: 1px solid var(--wait-bd);
-  background: var(--wait-bg);
+.gift-card p,
+.gift-card span {
+  margin: 4px 0 0;
+  color: var(--copy-dim);
+  font-size: 0.84rem;
 }
 
 .alert-card {
@@ -342,6 +504,21 @@ body,
 .profile-grid span {
   color: var(--copy-dim);
   font-size: 0.8rem;
+}
+
+.settings-list {
+  margin-top: 10px;
+}
+
+.setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.setting-row input[type='checkbox'] {
+  width: 18px;
+  height: 18px;
 }
 
 .form-grid {
@@ -434,17 +611,20 @@ button:disabled {
   left: 50%;
   transform: translateX(-50%);
   bottom: 10px;
-  display: grid;
   display: flex;
   gap: 7px;
   padding: 8px;
   border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 18px;
-  background: rgba(10, 9, 20, 0.86);
+  background: rgba(10, 9, 20, 0.88);
   backdrop-filter: blur(10px);
   z-index: 20;
   overflow-x: auto;
   scrollbar-width: none;
+}
+
+.bottom-nav::-webkit-scrollbar {
+  display: none;
 }
 
 .bottom-nav button {
@@ -458,7 +638,7 @@ button:disabled {
   gap: 4px;
   font-size: 0.7rem;
   font-weight: 600;
-  min-width: 64px;
+  min-width: 66px;
 }
 
 .bottom-nav button.active {
@@ -610,7 +790,13 @@ button:disabled {
     font-size: 0.64rem;
   }
 
-  .profile-grid {
+  .profile-grid,
+  .metric-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .gift-card,
+  .alert-card {
     grid-template-columns: 1fr;
   }
 }

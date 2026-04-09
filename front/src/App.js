@@ -1,17 +1,18 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   Activity,
   ArrowRight,
-  BadgeCheck,
   Bell,
   CircleUserRound,
   CreditCard,
+  Gift,
   House,
   LockKeyhole,
   MessageSquareText,
   RefreshCw,
   ScrollText,
+  Settings,
   ShieldCheck,
   Sparkles,
   TerminalSquare,
@@ -42,19 +43,22 @@ const DAILY_CHALLENGES = [
     id: 'ch-1',
     title: 'Carrera Relampago',
     description: 'Completa 3 interacciones para sumar puntos y mantener la racha.',
-    reward: '+120 puntos',
+    reward: 120,
+    rewardLabel: '+120 puntos',
   },
   {
     id: 'ch-2',
     title: 'Trivia Express',
-    description: 'Responde una mini trivia para desbloquear recompensas del dia.',
-    reward: '+1 ticket',
+    description: 'Responde rondas de 5 preguntas y desbloquea recompensas.',
+    reward: 180,
+    rewardLabel: '+180 puntos',
   },
   {
     id: 'ch-3',
     title: 'Reto Social',
-    description: 'Comparte o reacciona a una actividad para impulsar tu perfil.',
-    reward: '+80 puntos',
+    description: 'Comparte actividad en el muro y suma impacto en comunidad.',
+    reward: 80,
+    rewardLabel: '+80 puntos',
   },
 ];
 
@@ -79,18 +83,182 @@ const COMMUNITY_ITEMS = [
   },
 ];
 
+const GIFTS_CATALOG = [
+  { id: 'g-1', title: 'Ticket cine', cost: 180, stock: 8 },
+  { id: 'g-2', title: 'Cupon cafeteria', cost: 120, stock: 18 },
+  { id: 'g-3', title: 'Saldo wallet', cost: 260, stock: 12 },
+  { id: 'g-4', title: 'Pase premium 7 dias', cost: 340, stock: 5 },
+  { id: 'g-5', title: 'Gift box gaming', cost: 420, stock: 4 },
+  { id: 'g-6', title: 'Experiencia sorpresa', cost: 520, stock: 2 },
+];
+
+const TRIVIA_QUESTIONS = [
+  {
+    id: 'q-1',
+    question: 'Que practica ayuda a mejorar habitos de ahorro diario?',
+    options: ['Anotar gastos', 'Ignorar compras pequenas', 'Comprar sin plan', 'No revisar saldo'],
+    answer: 0,
+  },
+  {
+    id: 'q-2',
+    question: 'Cual es una buena accion para cuidar seguridad digital?',
+    options: ['Usar PIN fuerte', 'Compartir contrasena', 'No actualizar apps', 'Reusar passwords'],
+    answer: 0,
+  },
+  {
+    id: 'q-3',
+    question: 'Que beneficio da completar retos diarios?',
+    options: ['Suma puntos y racha', 'Pierdes historial', 'Bloquea wallet', 'Reduce saldo'],
+    answer: 0,
+  },
+  {
+    id: 'q-4',
+    question: 'Que conviene hacer antes de pagar en app?',
+    options: ['Verificar monto', 'Aceptar cualquier monto', 'Cerrar sesion', 'Desactivar seguridad'],
+    answer: 0,
+  },
+  {
+    id: 'q-5',
+    question: 'Que accion fortalece comunidad en Toka Ripple?',
+    options: ['Compartir actividad', 'Reportar sin motivo', 'No interactuar', 'Ocultar todo'],
+    answer: 0,
+  },
+  {
+    id: 'q-6',
+    question: 'Si falta telefono en perfil, que procede?',
+    options: ['Agregar telefono en ajustes', 'Eliminar cuenta', 'Reinstalar app', 'Ignorar para siempre'],
+    answer: 0,
+  },
+  {
+    id: 'q-7',
+    question: 'Que indica una racha de 10 dias?',
+    options: ['Constancia del usuario', 'Error de sistema', 'Pago duplicado', 'Cuenta bloqueada'],
+    answer: 0,
+  },
+  {
+    id: 'q-8',
+    question: 'Como mantener wallet ordenada?',
+    options: ['Consultar historial', 'No revisar movimientos', 'Usar datos falsos', 'Cerrar app siempre'],
+    answer: 0,
+  },
+  {
+    id: 'q-9',
+    question: 'Que practica apoya metas financieras?',
+    options: ['Definir presupuesto semanal', 'Gastar sin limite', 'No usar categorias', 'Evitar metas'],
+    answer: 0,
+  },
+  {
+    id: 'q-10',
+    question: 'Que aporta activar notificaciones utiles?',
+    options: ['Alertas de actividad', 'Mas errores', 'Menos seguridad', 'Pagos fallidos'],
+    answer: 0,
+  },
+  {
+    id: 'q-11',
+    question: 'Para que sirve consultar un pago?',
+    options: ['Confirmar estatus', 'Borrar perfil', 'Cambiar appId', 'Cerrar backend'],
+    answer: 0,
+  },
+  {
+    id: 'q-12',
+    question: 'Que dato debe revisarse en orden de pago?',
+    options: ['Moneda y monto', 'Color de interfaz', 'Version OS', 'Tamano de texto'],
+    answer: 0,
+  },
+  {
+    id: 'q-13',
+    question: 'Que refleja completar Trivia Express?',
+    options: ['Conocimiento y progreso', 'Fallo de login', 'Reset de racha', 'Error de token'],
+    answer: 0,
+  },
+  {
+    id: 'q-14',
+    question: 'Que favorece decisiones sanas de gasto?',
+    options: ['Comparar opciones', 'Comprar impulsivamente', 'Ocultar costos', 'Ignorar promociones'],
+    answer: 0,
+  },
+  {
+    id: 'q-15',
+    question: 'Que hacer si paymentId esta vacio?',
+    options: ['Crear pago primero', 'Cerrar app', 'Cambiar idioma', 'Borrar cache local'],
+    answer: 0,
+  },
+  {
+    id: 'q-16',
+    question: 'Que beneficio tiene sincronizar perfil?',
+    options: ['Datos actualizados', 'Perder historial', 'Eliminar puntos', 'Bloquear recompensas'],
+    answer: 0,
+  },
+  {
+    id: 'q-17',
+    question: 'Que mejora la experiencia de comunidad?',
+    options: ['Comentarios utiles', 'Spam continuo', 'Insultos', 'No responder'],
+    answer: 0,
+  },
+  {
+    id: 'q-18',
+    question: 'Que se recomienda para canjear regalo?',
+    options: ['Validar costo en puntos', 'Canjear sin saldo', 'Repetir compra rapida', 'Ignorar stock'],
+    answer: 0,
+  },
+  {
+    id: 'q-19',
+    question: 'Que representa ranking semanal?',
+    options: ['Actividad y avance', 'Solo azar', 'Fallos de API', 'Tiempo de carga'],
+    answer: 0,
+  },
+  {
+    id: 'q-20',
+    question: 'Que hacer ante error de auth en app?',
+    options: ['Reautorizar DigitalIdentity', 'Borrar todo al instante', 'Cambiar de app', 'Forzar cierre sin revisar'],
+    answer: 0,
+  },
+  {
+    id: 'q-21',
+    question: 'Que ayuda a evitar compras duplicadas?',
+    options: ['Esperar confirmacion', 'Repetir click sin revisar', 'Recargar sin control', 'Ignorar estatus'],
+    answer: 0,
+  },
+  {
+    id: 'q-22',
+    question: 'Que aporta tener ajustes configurados?',
+    options: ['Experiencia personalizada', 'Mas friccion', 'Menos seguridad', 'Sin beneficios'],
+    answer: 0,
+  },
+  {
+    id: 'q-23',
+    question: 'Que conviene hacer con gastos pequenos?',
+    options: ['Agrupar y revisar', 'Olvidarlos siempre', 'Duplicarlos', 'No registrarlos'],
+    answer: 0,
+  },
+  {
+    id: 'q-24',
+    question: 'Que permite el scroll infinito en feed?',
+    options: ['Ver mas contenido sin corte', 'Bloquear interfaz', 'Cerrar sesion', 'Perder actividad'],
+    answer: 0,
+  },
+  {
+    id: 'q-25',
+    question: 'Que mejora una app wallet sin friccion?',
+    options: ['Flujo claro y rapido', 'Pantallas confusas', 'Datos incompletos', 'Acciones duplicadas'],
+    answer: 0,
+  },
+];
+
 const RANKING_SEED = [
   { id: 'rk-1', name: 'Ana Sofia', points: 5200, streak: 26 },
   { id: 'rk-2', name: 'Valentina', points: 4410, streak: 21 },
   { id: 'rk-3', name: 'Carlos M', points: 3980, streak: 18 },
   { id: 'rk-4', name: 'Lucia P', points: 3300, streak: 16 },
+  { id: 'rk-5', name: 'Diego H', points: 2900, streak: 14 },
+  { id: 'rk-6', name: 'Mariana L', points: 2460, streak: 10 },
 ];
 
 const ALERT_ITEMS = [
   {
     id: 'al-1',
     title: 'Racha activa',
-    detail: 'Llevas 7 dias seguidos. Mantente activo para sumar bonus.',
+    detail: 'Llevas varios dias seguidos. Mantente activo para sumar bonus.',
     time: 'Hace 8 min',
   },
   {
@@ -112,8 +280,10 @@ const NAV_ITEMS = [
   { id: 'retos', label: 'Retos', icon: Sparkles },
   { id: 'feed', label: 'Feed', icon: MessageSquareText },
   { id: 'ranking', label: 'Ranking', icon: Trophy },
+  { id: 'gifts', label: 'Regalos', icon: Gift },
   { id: 'alerts', label: 'Alertas', icon: Bell },
   { id: 'wallet', label: 'Wallet', icon: Wallet },
+  { id: 'settings', label: 'Ajustes', icon: Settings },
   { id: 'profile', label: 'Perfil', icon: CircleUserRound },
 ];
 
@@ -125,15 +295,31 @@ function safeParse(value, fallback) {
   }
 }
 
+function shuffleArray(list) {
+  const next = [...list];
+  for (let i = next.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [next[i], next[j]] = [next[j], next[i]];
+  }
+  return next;
+}
+
+function buildFeedItem(index) {
+  const author = ['Toka Arcade', 'Wallet Crew', 'Ripple Labs', 'Community', 'Play Zone'][index % 5];
+  const mood = ['Racha activa', 'Reto completado', 'Meta semanal', 'Tip de ahorro', 'Bonus desbloqueado'][index % 5];
+  return {
+    id: `fd-${index}`,
+    author,
+    title: `${mood} #${index + 1}`,
+    body: `Publicacion dinamica ${index + 1}. Esta tarjeta se genera para mantener scroll infinito en el feed de comunidad.`,
+  };
+}
+
 function extractJsapiExchange(result) {
   return {
     authCode: extractAuthCodeFromBridgeResponse(result),
     resultCode:
-      result?.resultCode ||
-      result?.result?.resultCode ||
-      result?.result_status ||
-      result?.status ||
-      '',
+      result?.resultCode || result?.result?.resultCode || result?.result_status || result?.status || '',
     resultMsg:
       result?.resultMsg ||
       result?.result?.resultMsg ||
@@ -141,11 +327,7 @@ function extractJsapiExchange(result) {
       result?.errorMsg ||
       result?.message ||
       '',
-    startTime:
-      result?.startTime ||
-      result?.result?.startTime ||
-      result?.time ||
-      null,
+    startTime: result?.startTime || result?.result?.startTime || result?.time || null,
     rawResultShape: {
       topKeys: Object.keys(result || {}),
       hasResultAsString: typeof result?.result === 'string',
@@ -159,11 +341,9 @@ function isJsapiExchangeValid(exchange) {
   if (!exchange.authCode) {
     return false;
   }
-
   if (!exchange.resultCode) {
     return true;
   }
-
   const codeStr = String(exchange.resultCode).trim();
   return /success|ok|s|0|10000|20000000/i.test(codeStr);
 }
@@ -172,15 +352,12 @@ function formatErrorDetail(error, fallbackText) {
   if (!error) {
     return fallbackText;
   }
-
   if (typeof error === 'string') {
     return error;
   }
-
   if (error.message) {
     return error.message;
   }
-
   try {
     return JSON.stringify(error);
   } catch {
@@ -193,15 +370,18 @@ async function collectProfileAuthCodes(primaryAuthCode) {
   const profileRequests = [
     {
       type: 'ContactInformation',
-      message: 'Toka Ripple needs your authorization to access your contact information for profile sync.',
+      message:
+        'Toka Ripple needs your authorization to access your contact information for profile sync.',
     },
     {
       type: 'AddressInformation',
-      message: 'Toka Ripple needs your authorization to access your address information for profile sync.',
+      message:
+        'Toka Ripple needs your authorization to access your address information for profile sync.',
     },
     {
       type: 'PersonalInformation',
-      message: 'Toka Ripple needs your authorization to access your personal information for profile sync.',
+      message:
+        'Toka Ripple needs your authorization to access your personal information for profile sync.',
     },
     {
       type: 'KYCStatus',
@@ -217,7 +397,7 @@ async function collectProfileAuthCodes(primaryAuthCode) {
         profileAuthCodes.push(authCode);
       }
     } catch {
-      // Optional feature grants may be missing; continue with the codes we already have.
+      // Optional grants can fail in some environments.
     }
   }
 
@@ -260,6 +440,40 @@ function App() {
   const [permissionsError, setPermissionsError] = useState('');
   const [bridgeDiagnostics, setBridgeDiagnostics] = useState('');
 
+  const [homeMode, setHomeMode] = useState('muro');
+  const [feedItems, setFeedItems] = useState(() => Array.from({ length: 12 }, (_, i) => buildFeedItem(i)));
+  const [hasMoreFeed, setHasMoreFeed] = useState(true);
+  const [feedPage, setFeedPage] = useState(1);
+
+  const [giftStocks, setGiftStocks] = useState(() =>
+    GIFTS_CATALOG.reduce((acc, item) => ({ ...acc, [item.id]: item.stock }), {})
+  );
+
+  const [settingsState, setSettingsState] = useState({
+    notificationsEnabled: true,
+    autoplayFeed: true,
+    privateProfile: false,
+    compactMode: false,
+    language: 'es',
+    profileName: '',
+    profileEmail: '',
+    profilePhone: '',
+  });
+
+  const [triviaState, setTriviaState] = useState({
+    roundQuestions: [],
+    remainingPool: shuffleArray(TRIVIA_QUESTIONS.map((q) => q.id)),
+    currentIndex: 0,
+    roundScore: 0,
+    answeredCount: 0,
+    totalRounds: 0,
+    active: false,
+    selectedAnswer: null,
+    feedback: '',
+  });
+
+  const feedContainerRef = useRef(null);
+
   useEffect(() => {
     const savedSession = safeParse(window.localStorage.getItem(SESSION_KEY), null);
     if (savedSession) {
@@ -269,13 +483,9 @@ function App() {
       setAuthCode(savedSession.authCode || '');
       setUserInfo(savedSession.userInfo || null);
       setContactInfo(savedSession.contactInfo || null);
-      setPaymentForm((current) => ({
-        ...current,
-        ...savedSession.paymentForm,
-        currency: 'USD',
-      }));
+      setPaymentForm((current) => ({ ...current, ...savedSession.paymentForm, currency: 'USD' }));
       setWalletState((current) => ({ ...current, ...savedSession.walletState }));
-
+      setSettingsState((current) => ({ ...current, ...savedSession.settingsState }));
       if (savedSession.accessToken && savedSession.userId) {
         setDigitalIdentityAuthorized(true);
         setPermissionsGatePassed(true);
@@ -286,10 +496,7 @@ function App() {
       .then((config) => {
         setBackendConfig(config.data);
         if (config?.data?.merchantCodePrefix) {
-          setPaymentForm((current) => ({
-            ...current,
-            merchantCode: config.data.merchantCodePrefix,
-          }));
+          setPaymentForm((current) => ({ ...current, merchantCode: config.data.merchantCodePrefix }));
         }
       })
       .catch(() => {
@@ -298,7 +505,6 @@ function App() {
           detail: 'No se pudo cargar la configuracion del backend.',
         });
       });
-
   }, []);
 
   useEffect(() => {
@@ -313,36 +519,55 @@ function App() {
         contactInfo,
         paymentForm,
         walletState,
+        settingsState,
       })
     );
-  }, [accessToken, tokenType, userId, authCode, userInfo, contactInfo, paymentForm, walletState]);
+  }, [
+    accessToken,
+    tokenType,
+    userId,
+    authCode,
+    userInfo,
+    contactInfo,
+    paymentForm,
+    walletState,
+    settingsState,
+  ]);
 
   const rankingItems = useMemo(() => {
     const me = {
       id: 'rk-me',
-      name: userInfo?.nickName || userInfo?.fullName || 'Tu perfil',
+      name:
+        settingsState.profileName ||
+        userInfo?.fullName ||
+        userInfo?.nickName ||
+        userInfo?.nickname ||
+        userInfo?.displayName ||
+        'Tu perfil',
       points: walletState.points,
       streak: walletState.streak,
       isMe: true,
     };
-
     return [...RANKING_SEED, me].sort((a, b) => b.points - a.points);
-  }, [userInfo, walletState.points, walletState.streak]);
+  }, [settingsState.profileName, userInfo, walletState.points, walletState.streak]);
 
   const profileDisplay = useMemo(() => {
     const fullName =
+      settingsState.profileName ||
       userInfo?.fullName ||
       userInfo?.nickName ||
       userInfo?.nickname ||
       userInfo?.displayName ||
       '';
     const email =
+      settingsState.profileEmail ||
       userInfo?.email ||
       userInfo?.mail ||
       userInfo?.contactEmail ||
       userInfo?.personalEmail ||
       '';
     const phone =
+      settingsState.profilePhone ||
       userInfo?.mobilePhone ||
       userInfo?.phoneNumber ||
       userInfo?.phone ||
@@ -357,11 +582,143 @@ function App() {
       id: id || 'Agregar identificador',
       token: accessToken ? 'Activo' : 'Agregar token',
     };
-  }, [accessToken, userId, userInfo]);
+  }, [accessToken, settingsState, userId, userInfo]);
+
+  const selectedChallenge =
+    DAILY_CHALLENGES.find((item) => item.id === walletState.selectedChallengeId) || DAILY_CHALLENGES[0];
+
+  const currentTriviaQuestion = useMemo(() => {
+    const currentId = triviaState.roundQuestions[triviaState.currentIndex];
+    return TRIVIA_QUESTIONS.find((item) => item.id === currentId) || null;
+  }, [triviaState.currentIndex, triviaState.roundQuestions]);
 
   function pushActivity(title, detail) {
-    setActivityLog((current) => [{ id: `${Date.now()}-${current.length}`, title, detail }, ...current].slice(0, 6));
+    setActivityLog((current) =>
+      [{ id: `${Date.now()}-${current.length}`, title, detail }, ...current].slice(0, 7)
+    );
     setMessage({ title, detail: typeof detail === 'string' ? detail : JSON.stringify(detail, null, 2) });
+  }
+
+  function loadMoreFeed() {
+    if (!hasMoreFeed) {
+      return;
+    }
+    const nextPage = feedPage + 1;
+    const nextItems = Array.from({ length: 8 }, (_, i) => buildFeedItem(feedItems.length + i));
+    const cap = feedItems.length + nextItems.length;
+    setFeedItems((current) => [...current, ...nextItems]);
+    setFeedPage(nextPage);
+    if (cap >= 52) {
+      setHasMoreFeed(false);
+    }
+  }
+
+  function handleFeedScroll(event) {
+    const target = event.currentTarget;
+    const remaining = target.scrollHeight - target.scrollTop - target.clientHeight;
+    if (remaining < 120) {
+      loadMoreFeed();
+    }
+  }
+
+  function getNextTriviaRound(prevPool) {
+    let pool = [...prevPool];
+    if (pool.length < 5) {
+      pool = shuffleArray(TRIVIA_QUESTIONS.map((q) => q.id));
+    }
+    const roundQuestions = pool.slice(0, 5);
+    const remainingPool = pool.slice(5);
+    return { roundQuestions, remainingPool };
+  }
+
+  function startTriviaRound() {
+    setTriviaState((current) => {
+      const { roundQuestions, remainingPool } = getNextTriviaRound(current.remainingPool);
+      return {
+        ...current,
+        active: true,
+        roundQuestions,
+        remainingPool,
+        currentIndex: 0,
+        roundScore: 0,
+        answeredCount: 0,
+        selectedAnswer: null,
+        feedback: '',
+      };
+    });
+    pushActivity('Trivia iniciada', 'Arranco una ronda de 5 preguntas.');
+  }
+
+  function answerTrivia(optionIndex) {
+    if (!currentTriviaQuestion || triviaState.selectedAnswer !== null) {
+      return;
+    }
+
+    const isCorrect = optionIndex === currentTriviaQuestion.answer;
+    setTriviaState((current) => ({
+      ...current,
+      selectedAnswer: optionIndex,
+      roundScore: isCorrect ? current.roundScore + 1 : current.roundScore,
+      answeredCount: current.answeredCount + 1,
+      feedback: isCorrect ? 'Respuesta correcta' : 'Respuesta incorrecta',
+    }));
+  }
+
+  function nextTriviaQuestion() {
+    if (!triviaState.active) {
+      return;
+    }
+
+    const lastQuestion = triviaState.currentIndex >= 4;
+    if (!lastQuestion) {
+      setTriviaState((current) => ({
+        ...current,
+        currentIndex: current.currentIndex + 1,
+        selectedAnswer: null,
+        feedback: '',
+      }));
+      return;
+    }
+
+    const earnedPoints = triviaState.roundScore * 36;
+    setWalletState((current) => ({
+      ...current,
+      points: current.points + earnedPoints,
+      streak: current.streak + (triviaState.roundScore >= 3 ? 1 : 0),
+      challengeAccepted: true,
+      completedChallengeIds: current.completedChallengeIds.includes('ch-2')
+        ? current.completedChallengeIds
+        : [...current.completedChallengeIds, 'ch-2'],
+    }));
+
+    setTriviaState((current) => ({
+      ...current,
+      active: false,
+      totalRounds: current.totalRounds + 1,
+      selectedAnswer: null,
+      feedback: '',
+    }));
+
+    pushActivity(
+      'Trivia completada',
+      `Ronda finalizada con ${triviaState.roundScore}/5. Ganaste ${earnedPoints} puntos.`
+    );
+  }
+
+  function redeemGift(gift) {
+    const currentStock = giftStocks[gift.id] ?? 0;
+    if (currentStock <= 0) {
+      pushActivity('Sin stock', `El regalo ${gift.title} ya no tiene unidades.`);
+      return;
+    }
+    if (walletState.points < gift.cost) {
+      pushActivity('Puntos insuficientes', `Necesitas ${gift.cost} puntos para canjear ${gift.title}.`);
+      return;
+    }
+
+    setWalletState((current) => ({ ...current, points: current.points - gift.cost }));
+    setGiftStocks((current) => ({ ...current, [gift.id]: Math.max(0, (current[gift.id] ?? 0) - 1) }));
+    pushActivity('Regalo canjeado', `Canjeaste ${gift.title} por ${gift.cost} puntos.`);
   }
 
   async function handleAuthorizeAccess() {
@@ -369,19 +726,20 @@ function App() {
     setPermissionsError('');
     let rawExchange = null;
     let latestAuthExchangeMeta = null;
+
     try {
       if (!isAlipayWebView()) {
-        throw new Error('Esta función solo está disponible dentro de la SuperApp de Toka/Alipay.');
+        throw new Error('Esta funcion solo esta disponible dentro de la SuperApp de Toka/Alipay.');
       }
 
-      const authorizationMsg = 
-        'Toka Ripple needs your authorization to access your Digital Identity (user ID, avatar y nickname) para iniciar sesión y sincronizar tu perfil.';
+      const authorizationMsg =
+        'Toka Ripple needs your authorization to access your Digital Identity (user ID, avatar y nickname) para iniciar sesion y sincronizar tu perfil.';
 
       pushActivity(
-        'Solicitando autorización',
-        'Se abrirá el popup de Data Usage Authorization para DigitalIdentity.'
+        'Solicitando autorizacion',
+        'Se abrira el popup de Data Usage Authorization para DigitalIdentity.'
       );
-      
+
       let result;
 
       try {
@@ -390,21 +748,11 @@ function App() {
         const strictDetail = formatErrorDetail(strictError, 'DigitalIdentity authorization failed.');
 
         if (/denied|no permission|jsapi call denied|not available|timed out/i.test(strictDetail)) {
-          pushActivity(
-            'DigitalIdentity no disponible',
-            'Reintentando con método alterno de auth para obtener JWT.'
-          );
+          pushActivity('DigitalIdentity no disponible', 'Reintentando con metodo alterno.');
           result = await requestAuthCode('DigitalIdentity', authorizationMsg, false);
         } else {
           throw strictError;
         }
-      }
-
-      if (result?.__meta) {
-        pushActivity(
-          'Método de autorización',
-          `Método exitoso: ${result.__meta.method || 'unknown'}`
-        );
       }
 
       rawExchange = result || null;
@@ -413,24 +761,18 @@ function App() {
 
       if (!isJsapiExchangeValid(exchange)) {
         throw new Error(
-          `Intercambio JSAPI inválido. resultCode=${exchange.resultCode || 'empty'} resultMsg=${exchange.resultMsg || 'empty'} startTime=${exchange.startTime || 'empty'}`
+          `Intercambio JSAPI invalido. resultCode=${exchange.resultCode || 'empty'} resultMsg=${exchange.resultMsg || 'empty'}`
         );
       }
 
       const code = exchange.authCode;
-
-      pushActivity(
-        'Intercambio JSAPI',
-        `resultCode=${exchange.resultCode || 'n/a'} resultMsg=${exchange.resultMsg || 'n/a'} startTime=${exchange.startTime || 'n/a'}`
-      );
-
       const authResult = await authenticate(code, exchange);
       const token = authResult?.data?.accessToken || '';
       const authTokenType = authResult?.data?.tokenType || 'Bearer';
       const nextUserId = authResult?.data?.userId || '';
 
       if (!token || !nextUserId) {
-        throw new Error('La autenticación devolvió un token o userId vacío.');
+        throw new Error('La autenticacion devolvio token o userId vacio.');
       }
 
       setAuthCode(code);
@@ -453,62 +795,43 @@ function App() {
 
       setDigitalIdentityAuthorized(true);
       setModalOpen(false);
-      pushActivity('Sesion iniciada', 'Te has autenticado correctamente con tu cuenta Alipay.');
+      pushActivity('Sesion iniciada', 'Te autenticaste correctamente con tu cuenta Alipay.');
       return {
         token,
         tokenType: authTokenType,
         userId: nextUserId,
-        authCode: code,
-        profileAuthCodes: [],
       };
     } catch (error) {
-      const detail = formatErrorDetail(error, 'No se pudo obtener el código de autorización del puente Alipay.');
-      const enrichedDetail = /denied|no permission|jsapi call denied/i.test(detail)
-        ? `${detail} Verifica en Alipay/Toka: app release en ambiente Test, feature User_Digital_Identity_Information activo para tu appId y apertura dentro de la SuperApp.`
-        : detail;
-
+      const detail = formatErrorDetail(error, 'No se pudo obtener autorizacion del puente Alipay.');
       const runtimeInfo = getBridgeRuntimeInfo();
-      const diagnosticsPayload = {
-        errorMessage: detail,
-        runtimeInfo,
-        authExchangeMeta: latestAuthExchangeMeta,
-        authExchangeRaw: rawExchange,
-        attempts: error?.attempts || error?.causes?.map((item) => ({
-          method: item?.method,
-          message: item?.message,
-          response: item?.response || null,
-        })) || [],
-        checklist: [
-          'App Type = H5+ y URL abierta desde SuperApp real (no navegador externo).',
-          'Version liberada en ambiente Test para ese Mini Program ID.',
-          'Feature User_Digital_Identity_Information = Activated para el mismo appId.',
-          'Global config Test vinculado (Client ID / Merchant ID) y release aplicado.',
-          'Si se queda en "Autorizando...", revisar timeout/método no disponible en contenedor y usar fallback getAuthCode.',
-          'TOKA_MERCHANT_CODE largo (12 chars) solo afecta pagos, no auth; para pagos debe enviarse prefijo de 5 chars cuando aplique.',
-          'No usar cached WebView viejo: cerrar y reabrir mini app después del release.',
-        ],
-      };
-      setBridgeDiagnostics(JSON.stringify(diagnosticsPayload, null, 2));
-
-      setPermissionsError(enrichedDetail);
-      pushActivity(
-        'Error al autorizar',
-        enrichedDetail
+      setBridgeDiagnostics(
+        JSON.stringify(
+          {
+            errorMessage: detail,
+            runtimeInfo,
+            authExchangeMeta: latestAuthExchangeMeta,
+            authExchangeRaw: rawExchange,
+          },
+          null,
+          2
+        )
       );
+      setPermissionsError(detail);
+      pushActivity('Error al autorizar', detail);
     } finally {
       setLoadingAction('');
     }
+
+    return null;
   }
 
   function handleContinueFromPermissions() {
     const missing = [];
-
     if (!digitalIdentityAuthorized) {
       missing.push('Debes autorizar DigitalIdentity.');
     }
-
     if (!termsAccepted) {
-      missing.push('Debes aceptar términos y condiciones.');
+      missing.push('Debes aceptar terminos y condiciones.');
     }
 
     if (missing.length > 0) {
@@ -523,26 +846,31 @@ function App() {
     pushActivity('Permisos verificados', 'Ya puedes continuar al contenido principal.');
   }
 
-  function handleChallengeChange() {
-    const currentIndex = DAILY_CHALLENGES.findIndex((item) => item.id === walletState.selectedChallengeId);
-    const nextChallenge = DAILY_CHALLENGES[(currentIndex + 1) % DAILY_CHALLENGES.length];
+  function selectChallenge(challengeId) {
     setWalletState((current) => ({
       ...current,
-      selectedChallengeId: nextChallenge.id,
+      selectedChallengeId: challengeId,
       challengeAccepted: false,
     }));
-    pushActivity('Reto cambiado', `Nuevo reto activo: ${nextChallenge.title}.`);
+    const challenge = DAILY_CHALLENGES.find((item) => item.id === challengeId);
+    pushActivity('Reto seleccionado', challenge?.title || challengeId);
   }
 
   function handleChallengeAccept() {
-    const selectedChallenge = DAILY_CHALLENGES.find((item) => item.id === walletState.selectedChallengeId);
     if (!accessToken) {
-      pushActivity('Reto bloqueado', 'Primero autoriza DigitalIdentity para obtener auth code y token.');
+      pushActivity('Reto bloqueado', 'Primero autoriza DigitalIdentity para obtener token.');
+      return;
+    }
+
+    if (selectedChallenge.id === 'ch-2') {
+      if (!triviaState.active) {
+        startTriviaRound();
+      }
       return;
     }
 
     if (walletState.completedChallengeIds.includes(selectedChallenge.id)) {
-      pushActivity('Reto ya completado', `El reto ${selectedChallenge.title} ya habia sido contabilizado.`);
+      pushActivity('Reto ya completado', `El reto ${selectedChallenge.title} ya fue contabilizado.`);
       return;
     }
 
@@ -550,17 +878,18 @@ function App() {
       ...current,
       challengeAccepted: true,
       completedChallengeIds: [...current.completedChallengeIds, selectedChallenge.id],
-      points: current.points + 120,
+      points: current.points + selectedChallenge.reward,
       streak: current.streak + 1,
     }));
-    pushActivity('Reto aceptado', `Se activo ${selectedChallenge.title} y se sumaron puntos de progreso.`);
+
+    pushActivity('Reto aceptado', `Se activo ${selectedChallenge.title} y sumaste ${selectedChallenge.reward} puntos.`);
   }
 
   async function handleAuthorizeAndPay() {
     setLoadingAction('authorize-pay');
     try {
       if (!backendConfig?.merchantCodePrefix) {
-        throw new Error('No se cargó el merchant prefix del backend.');
+        throw new Error('No se cargo el merchant prefix del backend.');
       }
 
       const refreshedSession = await handleAuthorizeAccess();
@@ -569,7 +898,7 @@ function App() {
       const paymentUserId = refreshedSession?.userId || userId;
 
       if (!paymentToken || !paymentUserId) {
-        throw new Error('Necesitas una sesión activa antes de autorizar un pago.');
+        throw new Error('Necesitas una sesion activa antes de autorizar un pago.');
       }
 
       const result = await createPayment({
@@ -589,11 +918,10 @@ function App() {
       setPaymentForm((current) => ({ ...current, paymentId: createdPaymentId }));
 
       if (!paymentUrl) {
-        throw new Error('La respuesta de pago no devolvió paymentUrl.');
+        throw new Error('La respuesta de pago no devolvio paymentUrl.');
       }
 
-      pushActivity('Pago autorizado', 'Se generó la orden y ahora se abrirá el cashier de Toka.');
-
+      pushActivity('Pago autorizado', 'Se genero la orden y ahora se abrira el cashier de Toka.');
       if (isAlipayWebView()) {
         await openPayment(paymentUrl);
       } else {
@@ -640,8 +968,13 @@ function App() {
     }
   }
 
-  const selectedChallenge =
-    DAILY_CHALLENGES.find((item) => item.id === walletState.selectedChallengeId) || DAILY_CHALLENGES[0];
+  function updateSettings(key, value) {
+    setSettingsState((current) => ({ ...current, [key]: value }));
+  }
+
+  function saveSettings() {
+    pushActivity('Ajustes guardados', 'Configuracion aplicada correctamente.');
+  }
 
   function renderHomeView() {
     return (
@@ -650,6 +983,7 @@ function App() {
           <div className="card-topline">Reto activo</div>
           <h2>{selectedChallenge.title}</h2>
           <p>{selectedChallenge.description}</p>
+
           <div className="metric-grid">
             <div>
               <strong>{walletState.points}</strong>
@@ -664,12 +998,13 @@ function App() {
               <span>Retos</span>
             </div>
           </div>
+
           <div className="action-row">
             <button type="button" className="btn-soft" onClick={() => setModalOpen(true)}>
               Ver detalles
             </button>
-            <button type="button" className="btn-soft" onClick={handleChallengeChange}>
-              Cambiar
+            <button type="button" className="btn-soft" onClick={() => setActiveView('retos')}>
+              Ir a retos
             </button>
             <button type="button" onClick={handleChallengeAccept}>
               Aceptar reto
@@ -677,111 +1012,201 @@ function App() {
           </div>
 
           <div className="story-row">
-            <div className="story-chip">Top 10 semanal</div>
-            <div className="story-chip">Nuevos retos</div>
-            <div className="story-chip">Wallet pro</div>
+            <div className="story-chip">Top semanal</div>
+            <div className="story-chip">Modo wallet</div>
+            <div className="story-chip">Trivia live</div>
           </div>
         </article>
 
-        <article className="surface-card session-card">
-          <div className="card-topline">Estado de sesion</div>
-          <h3>Acceso y sincronizacion</h3>
-          <div className="session-list">
-            <div>
-              <BadgeCheck size={16} />
-              <span>{userId ? 'Usuario autenticado' : 'Usuario pendiente'}</span>
-            </div>
-            <div>
-              <LockKeyhole size={16} />
-              <span>{accessToken ? 'JWT activo' : 'JWT pendiente'}</span>
-            </div>
-            <div>
-              <ShieldCheck size={16} />
-              <span>{isAlipayWebView() ? 'Contenedor Toka detectado' : 'Modo navegador detectado'}</span>
-            </div>
-          </div>
-          <div className="action-row">
-            <button type="button" onClick={handleAuthorizeAccess} disabled={loadingAction === 'authorize'}>
-              {loadingAction === 'authorize' ? 'Autorizando...' : 'Autorizar acceso'}
+        <article className="surface-card">
+          <div className="home-switch">
+            <button
+              type="button"
+              className={homeMode === 'muro' ? 'active' : ''}
+              onClick={() => setHomeMode('muro')}
+            >
+              Muro
             </button>
-            <button type="button" className="btn-soft" onClick={() => setActiveView('wallet')}>
-              Ir a wallet
+            <button
+              type="button"
+              className={homeMode === 'feed' ? 'active' : ''}
+              onClick={() => setHomeMode('feed')}
+            >
+              Feed
             </button>
           </div>
+
+          {homeMode === 'muro' ? (
+            <div className="feed-stack">
+              {COMMUNITY_ITEMS.map((item) => (
+                <div key={item.id} className="feed-card">
+                  <div className="feed-meta">{item.author}</div>
+                  <strong>{item.title}</strong>
+                  <p>{item.body}</p>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="home-feed-preview">
+              <p>El modo feed tambien esta disponible con scroll infinito en la pestaña Feed.</p>
+              <button type="button" onClick={() => setActiveView('feed')}>
+                Abrir feed completo
+              </button>
+            </div>
+          )}
         </article>
       </>
     );
   }
 
   function renderRetosView() {
+    const isTriviaChallenge = selectedChallenge.id === 'ch-2';
+
     return (
-      <article className="surface-card">
-        <div className="card-topline">Retos diarios</div>
-        <h3>Selecciona y activa tu siguiente reto</h3>
-        <div className="challenge-list">
-          {DAILY_CHALLENGES.map((challenge) => {
-            const isActive = challenge.id === walletState.selectedChallengeId;
-            const isDone = walletState.completedChallengeIds.includes(challenge.id);
-            return (
-              <div key={challenge.id} className={`challenge-card ${isActive ? 'is-active' : ''}`}>
-                <div>
-                  <strong>{challenge.title}</strong>
-                  <p>{challenge.description}</p>
-                  <span className="challenge-reward">{challenge.reward}</span>
+      <>
+        <article className="surface-card">
+          <div className="card-topline">Retos diarios</div>
+          <h3>Selecciona y activa tu siguiente reto</h3>
+          <div className="challenge-list">
+            {DAILY_CHALLENGES.map((challenge) => {
+              const isActive = challenge.id === walletState.selectedChallengeId;
+              const isDone = walletState.completedChallengeIds.includes(challenge.id);
+              return (
+                <div key={challenge.id} className={`challenge-card ${isActive ? 'is-active' : ''}`}>
+                  <div>
+                    <strong>{challenge.title}</strong>
+                    <p>{challenge.description}</p>
+                    <span className="challenge-reward">{challenge.rewardLabel}</span>
+                  </div>
+                  <div className="challenge-actions">
+                    <span className={`challenge-state ${isDone ? 'done' : 'pending'}`}>
+                      {isDone ? 'Completado' : 'Pendiente'}
+                    </span>
+                    <button type="button" className="btn-soft" onClick={() => selectChallenge(challenge.id)}>
+                      Seleccionar
+                    </button>
+                  </div>
                 </div>
-                <div className="challenge-actions">
-                  <span className={`challenge-state ${isDone ? 'done' : 'pending'}`}>
-                    {isDone ? 'Completado' : 'Pendiente'}
-                  </span>
-                  <button
-                    type="button"
-                    className="btn-soft"
-                    onClick={() =>
-                      setWalletState((current) => ({
-                        ...current,
-                        selectedChallengeId: challenge.id,
-                        challengeAccepted: false,
-                      }))
-                    }
-                  >
-                    Seleccionar
+              );
+            })}
+          </div>
+        </article>
+
+        <article className="surface-card">
+          <div className="card-topline">Accion del reto</div>
+          <h3>{selectedChallenge.title}</h3>
+          <p>{selectedChallenge.description}</p>
+
+          {!isTriviaChallenge ? (
+            <div className="action-row">
+              <button type="button" onClick={handleChallengeAccept}>
+                Aceptar reto
+              </button>
+            </div>
+          ) : (
+            <div className="trivia-shell">
+              {!triviaState.active ? (
+                <>
+                  <p>
+                    Trivia Express usa un banco de 25 preguntas y en cada ronda te presenta 5 preguntas distintas.
+                  </p>
+                  <div className="trivia-stats">
+                    <span>Rondas completadas: {triviaState.totalRounds}</span>
+                    <span>Preguntas por ronda: 5</span>
+                    <span>Total banco: 25</span>
+                  </div>
+                  <button type="button" onClick={startTriviaRound}>
+                    {triviaState.totalRounds > 0 ? 'Siguiente 5 preguntas' : 'Iniciar ronda de trivia'}
                   </button>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </article>
+                </>
+              ) : (
+                <>
+                  <p className="trivia-counter">
+                    Pregunta {triviaState.currentIndex + 1} de 5
+                  </p>
+                  <h4>{currentTriviaQuestion?.question}</h4>
+                  <div className="trivia-options">
+                    {currentTriviaQuestion?.options.map((option, optionIndex) => {
+                      const selected = triviaState.selectedAnswer === optionIndex;
+                      const isCorrect = optionIndex === currentTriviaQuestion.answer;
+                      const reveal = triviaState.selectedAnswer !== null;
+                      return (
+                        <button
+                          type="button"
+                          key={option}
+                          className={`trivia-option ${
+                            reveal && isCorrect ? 'correct' : reveal && selected ? 'wrong' : ''
+                          }`}
+                          onClick={() => answerTrivia(optionIndex)}
+                          disabled={triviaState.selectedAnswer !== null}
+                        >
+                          {option}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <div className="trivia-footer">
+                    <span>Score: {triviaState.roundScore}/5</span>
+                    <button
+                      type="button"
+                      onClick={nextTriviaQuestion}
+                      disabled={triviaState.selectedAnswer === null}
+                    >
+                      {triviaState.currentIndex >= 4 ? 'Finalizar ronda' : 'Siguiente'}
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+        </article>
+      </>
     );
   }
 
   function renderFeedView() {
     return (
       <article className="surface-card">
-        <div className="card-topline">Comunidad</div>
-        <h3>Feed de actividad</h3>
-        <div className="feed-stack">
-          {COMMUNITY_ITEMS.map((item) => (
+        <div className="card-topline">Feed infinito</div>
+        <h3>Explora contenido continuo</h3>
+        <div className="infinite-feed" ref={feedContainerRef} onScroll={handleFeedScroll}>
+          {feedItems.map((item) => (
             <div key={item.id} className="feed-card">
               <div className="feed-meta">{item.author}</div>
               <strong>{item.title}</strong>
               <p>{item.body}</p>
             </div>
           ))}
+          <div className="feed-status">{hasMoreFeed ? 'Desliza para cargar mas' : 'No hay mas contenido por ahora'}</div>
         </div>
       </article>
     );
   }
 
   function renderRankingView() {
+    const podium = rankingItems.slice(0, 3);
+    const rest = rankingItems.slice(3);
+
     return (
-      <article className="surface-card">
+      <article className="surface-card ranking-shell">
         <div className="card-topline">Competencia</div>
-        <h3>Tabla de ranking</h3>
+        <h3>Ranking semanal</h3>
+
+        <div className="podium">
+          {podium.map((entry, idx) => (
+            <div key={entry.id} className={`podium-item p-${idx + 1}`}>
+              <div className="podium-rank">#{idx + 1}</div>
+              <strong>{entry.name}</strong>
+              <span>{entry.points} pts</span>
+            </div>
+          ))}
+        </div>
+
         <div className="ranking-list">
-          {rankingItems.map((entry, index) => (
+          {rest.map((entry, index) => (
             <div key={entry.id} className={`rank-row ${entry.isMe ? 'is-me' : ''}`}>
-              <div className="rank-num">#{index + 1}</div>
+              <div className="rank-num">#{index + 4}</div>
               <div className="rank-user">
                 <strong>{entry.name}</strong>
                 <span>{entry.streak} dias de racha</span>
@@ -789,6 +1214,37 @@ function App() {
               <div className="rank-points">{entry.points}</div>
             </div>
           ))}
+        </div>
+      </article>
+    );
+  }
+
+  function renderGiftsView() {
+    return (
+      <article className="surface-card">
+        <div className="card-topline">Regalos</div>
+        <h3>Canjea tus puntos en recompensas</h3>
+        <div className="gift-header">
+          <span>Puntos disponibles</span>
+          <strong>{walletState.points}</strong>
+        </div>
+
+        <div className="gifts-list">
+          {GIFTS_CATALOG.map((gift) => {
+            const stock = giftStocks[gift.id] ?? 0;
+            return (
+              <div key={gift.id} className="gift-card">
+                <div>
+                  <strong>{gift.title}</strong>
+                  <p>{gift.cost} puntos</p>
+                  <span>Stock: {stock}</span>
+                </div>
+                <button type="button" onClick={() => redeemGift(gift)} disabled={stock <= 0}>
+                  Canjear
+                </button>
+              </div>
+            );
+          })}
         </div>
       </article>
     );
@@ -837,7 +1293,9 @@ function App() {
               Titulo de orden
               <input
                 value={paymentForm.orderTitle}
-                onChange={(event) => setPaymentForm((current) => ({ ...current, orderTitle: event.target.value }))}
+                onChange={(event) =>
+                  setPaymentForm((current) => ({ ...current, orderTitle: event.target.value }))
+                }
               />
             </label>
 
@@ -845,7 +1303,9 @@ function App() {
               Monto
               <input
                 value={paymentForm.orderAmount}
-                onChange={(event) => setPaymentForm((current) => ({ ...current, orderAmount: event.target.value }))}
+                onChange={(event) =>
+                  setPaymentForm((current) => ({ ...current, orderAmount: event.target.value }))
+                }
               />
             </label>
 
@@ -881,7 +1341,12 @@ function App() {
               <span>Cerrar pago</span>
             </button>
 
-            <button type="button" className="btn-soft" onClick={handleAuthorizeAccess} disabled={loadingAction === 'authorize'}>
+            <button
+              type="button"
+              className="btn-soft"
+              onClick={handleAuthorizeAccess}
+              disabled={loadingAction === 'authorize'}
+            >
               <RefreshCw size={16} />
               <span>Sincronizar perfil</span>
             </button>
@@ -906,6 +1371,83 @@ function App() {
           </div>
         </article>
       </>
+    );
+  }
+
+  function renderSettingsView() {
+    return (
+      <article className="surface-card">
+        <div className="card-topline">Ajustes</div>
+        <h3>Configura tu experiencia</h3>
+
+        <div className="settings-list">
+          <label className="setting-row">
+            <span>Notificaciones</span>
+            <input
+              type="checkbox"
+              checked={settingsState.notificationsEnabled}
+              onChange={(event) => updateSettings('notificationsEnabled', event.target.checked)}
+            />
+          </label>
+          <label className="setting-row">
+            <span>Autoplay en feed</span>
+            <input
+              type="checkbox"
+              checked={settingsState.autoplayFeed}
+              onChange={(event) => updateSettings('autoplayFeed', event.target.checked)}
+            />
+          </label>
+          <label className="setting-row">
+            <span>Perfil privado</span>
+            <input
+              type="checkbox"
+              checked={settingsState.privateProfile}
+              onChange={(event) => updateSettings('privateProfile', event.target.checked)}
+            />
+          </label>
+          <label className="setting-row">
+            <span>Modo compacto</span>
+            <input
+              type="checkbox"
+              checked={settingsState.compactMode}
+              onChange={(event) => updateSettings('compactMode', event.target.checked)}
+            />
+          </label>
+        </div>
+
+        <div className="form-grid">
+          <label>
+            Nombre para mostrar
+            <input
+              value={settingsState.profileName}
+              onChange={(event) => updateSettings('profileName', event.target.value)}
+              placeholder="Agregar nombre"
+            />
+          </label>
+          <label>
+            Email de contacto
+            <input
+              value={settingsState.profileEmail}
+              onChange={(event) => updateSettings('profileEmail', event.target.value)}
+              placeholder="Agregar email"
+            />
+          </label>
+          <label>
+            Telefono de contacto
+            <input
+              value={settingsState.profilePhone}
+              onChange={(event) => updateSettings('profilePhone', event.target.value)}
+              placeholder="Agregar telefono"
+            />
+          </label>
+        </div>
+
+        <div className="action-row">
+          <button type="button" onClick={saveSettings}>
+            Guardar ajustes
+          </button>
+        </div>
+      </article>
     );
   }
 
@@ -1007,7 +1549,7 @@ function App() {
   }
 
   return (
-    <main className="app-root">
+    <main className={`app-root ${settingsState.compactMode ? 'compact' : ''}`}>
       <div className="ambient ambient-a" />
       <div className="ambient ambient-b" />
 
@@ -1037,8 +1579,10 @@ function App() {
             {activeView === 'retos' ? renderRetosView() : null}
             {activeView === 'feed' ? renderFeedView() : null}
             {activeView === 'ranking' ? renderRankingView() : null}
+            {activeView === 'gifts' ? renderGiftsView() : null}
             {activeView === 'alerts' ? renderAlertsView() : null}
             {activeView === 'wallet' ? renderWalletView() : null}
+            {activeView === 'settings' ? renderSettingsView() : null}
             {activeView === 'profile' ? renderProfileView() : null}
           </motion.section>
         </AnimatePresence>
@@ -1097,13 +1641,13 @@ function App() {
             <div className="card-topline">Reto diario</div>
             <h2>{selectedChallenge.title}</h2>
             <p>{selectedChallenge.description}</p>
-            <p className="reward-line">Recompensa: {selectedChallenge.reward}</p>
+            <p className="reward-line">Recompensa: {selectedChallenge.rewardLabel}</p>
             <div className="action-row">
               <button type="button" className="btn-soft" onClick={() => setModalOpen(false)}>
                 Cerrar
               </button>
-              <button type="button" onClick={handleAuthorizeAccess} disabled={loadingAction === 'authorize'}>
-                {loadingAction === 'authorize' ? 'Autorizando...' : 'Autorizar DigitalIdentity'}
+              <button type="button" onClick={handleChallengeAccept}>
+                Aceptar reto
               </button>
             </div>
           </section>
