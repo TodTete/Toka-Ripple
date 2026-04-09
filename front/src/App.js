@@ -292,7 +292,22 @@ function App() {
       setUserId(nextUserId);
 
       try {
-        const userInfoResult = await getUserInfo(token, [code]);
+        const profileAuthCodes = [code];
+        try {
+          const contactMessage = 'Toka Ripple needs your authorization to access your contact information for profile sync.';
+          const contactResult = await requestAuthCode('ContactInformation', contactMessage, true);
+          const contactCode = extractAuthCodeFromBridgeResponse(contactResult);
+          if (contactCode) {
+            profileAuthCodes.push(contactCode);
+          }
+        } catch (contactError) {
+          pushActivity(
+            'Contacto opcional',
+            contactError?.message || 'No se pudo solicitar el auth code de contacto; se sincronizará solo identidad.'
+          );
+        }
+
+        const userInfoResult = await getUserInfo(token, profileAuthCodes);
         setUserInfo(userInfoResult?.data || null);
       } catch (userInfoError) {
         pushActivity(
@@ -402,6 +417,14 @@ function App() {
   async function handleCreatePayment() {
     setLoadingAction('create-payment');
     try {
+      if (!accessToken || !userId) {
+        throw new Error('Necesitas una sesión activa antes de crear el pago.');
+      }
+
+      if (!backendConfig?.merchantCodePrefix) {
+        throw new Error('No se cargó el merchant prefix del backend.');
+      }
+
       const merchantCodePrefix = backendConfig?.merchantCodePrefix || paymentForm.merchantCode;
       const result = await createPayment({
         accessToken,
@@ -423,6 +446,51 @@ function App() {
       }
     } catch (error) {
       pushActivity('Pago fallido', error?.payload?.message || error.message || 'No se pudo crear el pago.');
+    } finally {
+      setLoadingAction('');
+    }
+  }
+
+  async function handleAuthorizeAndPay() {
+    setLoadingAction('authorize-pay');
+    try {
+      if (!accessToken || !userId) {
+        throw new Error('Necesitas una sesión activa antes de autorizar un pago.');
+      }
+
+      if (!backendConfig?.merchantCodePrefix) {
+        throw new Error('No se cargó el merchant prefix del backend.');
+      }
+
+      const result = await createPayment({
+        accessToken,
+        userId,
+        merchantCode: backendConfig.merchantCodePrefix,
+        orderTitle: paymentForm.orderTitle,
+        orderAmount: {
+          value: paymentForm.orderAmount,
+          currency: paymentForm.currency,
+        },
+      });
+
+      const paymentUrl = result?.data?.paymentUrl || '';
+      const createdPaymentId = result?.data?.paymentId || '';
+      setPaymentForm((current) => ({ ...current, paymentId: createdPaymentId }));
+
+      if (!paymentUrl) {
+        throw new Error('La respuesta de pago no devolvió paymentUrl.');
+      }
+
+      pushActivity('Pago autorizado', 'Se generó la orden y ahora se abrirá el cashier de Toka.');
+
+      if (isAlipayWebView()) {
+        await openPayment(paymentUrl);
+      } else {
+        pushActivity('Pago listo', 'Abre este flujo dentro de la SuperApp para completar el pago.');
+      }
+    } catch (error) {
+      const detail = error?.payload?.message || error.message || 'No se pudo autorizar el pago.';
+      pushActivity('Pago fallido', detail);
     } finally {
       setLoadingAction('');
     }
@@ -687,6 +755,9 @@ function App() {
             </p>
 
             <div className="action-row wrap">
+              <button type="button" onClick={handleAuthorizeAndPay} disabled={loadingAction === 'authorize-pay'}>
+                {loadingAction === 'authorize-pay' ? 'Autorizando pago...' : 'Autorizar y pagar'}
+              </button>
               <button type="button" onClick={handleCreatePayment} disabled={loadingAction === 'create-payment'}>
                 Crear pago
               </button>
