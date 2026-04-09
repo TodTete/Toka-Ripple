@@ -451,73 +451,6 @@ function App() {
     pushActivity('Reto aceptado', `Se activo ${selectedChallenge.title} y se sumaron puntos de progreso.`);
   }
 
-  async function handleCreatePayment() {
-    setLoadingAction('create-payment');
-    try {
-      if (!accessToken || !userId) {
-        throw new Error('Necesitas una sesión activa antes de crear el pago.');
-      }
-
-      if (!backendConfig?.merchantCodePrefix) {
-        throw new Error('No se cargó el merchant prefix del backend.');
-      }
-
-      const merchantCodePrefix = backendConfig?.merchantCodePrefix || paymentForm.merchantCode;
-      const result = await createPayment({
-        accessToken,
-        userId,
-        merchantCode: merchantCodePrefix,
-        orderTitle: paymentForm.orderTitle,
-        orderAmount: {
-          value: paymentForm.orderAmount,
-          currency: 'USD',
-        },
-      });
-      const createdPaymentId = result?.data?.paymentId || '';
-      const paymentUrl = result?.data?.paymentUrl || '';
-      setPaymentForm((current) => ({ ...current, paymentId: createdPaymentId }));
-      pushActivity('Pago creado', 'La orden se creo correctamente desde el backend.');
-
-      if (paymentUrl && isAlipayWebView()) {
-        await openPayment(paymentUrl);
-      }
-    } catch (error) {
-      if (error?.status === 401) {
-        pushActivity('Sesión expirada', 'Reautorizando antes de intentar crear el pago nuevamente.');
-        try {
-          await handleAuthorizeAccess();
-          const retryResult = await createPayment({
-            accessToken,
-            userId,
-            merchantCode: backendConfig?.merchantCodePrefix || paymentForm.merchantCode,
-            orderTitle: paymentForm.orderTitle,
-            orderAmount: {
-              value: paymentForm.orderAmount,
-              currency: 'USD',
-            },
-          });
-
-          const retryPaymentId = retryResult?.data?.paymentId || '';
-          const retryPaymentUrl = retryResult?.data?.paymentUrl || '';
-          setPaymentForm((current) => ({ ...current, paymentId: retryPaymentId }));
-
-          if (retryPaymentUrl && isAlipayWebView()) {
-            await openPayment(retryPaymentUrl);
-          }
-
-          pushActivity('Pago creado', 'La orden se creo correctamente tras reautenticación.');
-          return;
-        } catch (retryError) {
-          pushActivity('Pago fallido', retryError?.payload?.message || retryError.message || 'No se pudo crear el pago tras reautenticación.');
-        }
-      } else {
-        pushActivity('Pago fallido', error?.payload?.message || error.message || 'No se pudo crear el pago.');
-      }
-    } finally {
-      setLoadingAction('');
-    }
-  }
-
   async function handleAuthorizeAndPay() {
     setLoadingAction('authorize-pay');
     try {
@@ -832,7 +765,7 @@ function App() {
               <button type="button" className="secondary" onClick={handleAuthorizeAccess} disabled={loadingAction === 'authorize'}>
                 Sincronizar perfil
               </button>
-              <button type="button" onClick={handleCreatePayment} disabled={loadingAction === 'create-payment'}>
+              <button type="button" onClick={handleAuthorizeAndPay} disabled={loadingAction === 'authorize-pay'}>
                 Crear pago
               </button>
               <button type="button" className="secondary" onClick={handleInquiryPayment} disabled={loadingAction === 'inquiry-payment'}>
