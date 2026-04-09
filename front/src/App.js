@@ -5,6 +5,8 @@ import {
   Gift,
   House,
   LockKeyhole,
+  MessageSquare,
+  PlaySquare,
   ShieldCheck,
   Sparkles,
   Trophy,
@@ -45,18 +47,21 @@ const DAILY_CHALLENGES = [
     title: 'Gratitud en accion',
     description: 'Comparte un mensaje positivo en el muro para impulsar comunidad.',
     rewardPoints: 120,
+    participants: 847,
   },
   {
     id: 'ch-2',
     title: 'Trivia express',
     description: 'Responde 5 preguntas por ronda del banco de 25.',
     rewardPoints: 180,
+    participants: 623,
   },
   {
     id: 'ch-3',
     title: 'Movimiento diario',
     description: 'Completa una actividad corta y registra tu avance.',
     rewardPoints: 90,
+    participants: 534,
   },
 ];
 
@@ -66,18 +71,24 @@ const WALL_POSTS = [
     author: 'Toka Arcade',
     title: 'Hoy hay bonus de racha',
     body: 'Completa tu reto diario y suma puntos extra al ranking semanal.',
+    likes: 144,
+    comments: ['Excelente tip', 'Ya voy por mi reto'],
   },
   {
     id: 'w-2',
     author: 'Wallet Crew',
     title: 'Consejo de wallet',
     body: 'Revisa tu historial antes de canjear regalos para planear mejor tus puntos.',
+    likes: 87,
+    comments: ['Me sirvio bastante'],
   },
   {
     id: 'w-3',
     author: 'Community',
     title: 'Reto de comunidad activo',
     body: 'Publica una accion positiva y motiva a otros usuarios a participar.',
+    likes: 203,
+    comments: ['Vamos comunidad', 'Ya publique mi avance'],
   },
 ];
 
@@ -134,6 +145,7 @@ const TRIVIA_QUESTIONS = [
 
 const NAV_ITEMS = [
   { id: 'home', label: 'Inicio', icon: House },
+  { id: 'feed', label: 'Feed', icon: PlaySquare },
   { id: 'reto', label: 'Reto', icon: Sparkles },
   { id: 'ranking', label: 'Ranking', icon: Trophy },
   { id: 'wallet', label: 'Wallet', icon: Wallet },
@@ -258,7 +270,6 @@ async function collectProfileAuthCodes(primaryAuthCode) {
 function App() {
   const [backendConfig, setBackendConfig] = useState(null);
   const [screen, setScreen] = useState('home');
-  const [homeTab, setHomeTab] = useState('muro');
   const [showNotifications, setShowNotifications] = useState(false);
 
   const [loadingAction, setLoadingAction] = useState('');
@@ -294,6 +305,22 @@ function App() {
   );
 
   const [notifications, setNotifications] = useState(NOTIFICATIONS_BASE);
+
+  const [wallState, setWallState] = useState(() =>
+    WALL_POSTS.reduce(
+      (acc, post) => ({
+        ...acc,
+        [post.id]: {
+          liked: false,
+          likes: post.likes,
+          comments: [...post.comments],
+          draft: '',
+          showComments: false,
+        },
+      }),
+      {}
+    )
+  );
 
   const [feedItems, setFeedItems] = useState(() =>
     Array.from({ length: 10 }, (_, index) => createFeedItem(index))
@@ -469,6 +496,60 @@ function App() {
     if (remaining < 180) {
       loadMoreFeed();
     }
+  }
+
+  function toggleWallLike(postId) {
+    setWallState((current) => {
+      const post = current[postId];
+      if (!post) {
+        return current;
+      }
+      const nextLiked = !post.liked;
+      return {
+        ...current,
+        [postId]: {
+          ...post,
+          liked: nextLiked,
+          likes: post.likes + (nextLiked ? 1 : -1),
+        },
+      };
+    });
+  }
+
+  function toggleWallComments(postId) {
+    setWallState((current) => ({
+      ...current,
+      [postId]: {
+        ...current[postId],
+        showComments: !current[postId].showComments,
+      },
+    }));
+  }
+
+  function updateWallCommentDraft(postId, value) {
+    setWallState((current) => ({
+      ...current,
+      [postId]: {
+        ...current[postId],
+        draft: value,
+      },
+    }));
+  }
+
+  function submitWallComment(postId) {
+    const draft = wallState[postId]?.draft?.trim();
+    if (!draft) {
+      return;
+    }
+    setWallState((current) => ({
+      ...current,
+      [postId]: {
+        ...current[postId],
+        comments: [...current[postId].comments, draft],
+        draft: '',
+      },
+    }));
+    pushActivity('Comentario agregado', `Publicaste comentario en ${postId}.`);
   }
 
   function startTriviaRound() {
@@ -754,7 +835,10 @@ function App() {
         await openPayment(paymentUrl);
       }
 
-      pushActivity('Pago creado', pendingTokadropUser ? `Tokadrop enviado a ${pendingTokadropUser.name}.` : 'Pago generado correctamente.');
+      pushActivity(
+        'Pago creado',
+        pendingTokadropUser ? `Tokadrop enviado a ${pendingTokadropUser.name}.` : 'Pago generado correctamente.'
+      );
       setPendingTokadropUser(null);
     } catch (error) {
       const detail = error?.payload?.message || error.responseText || error.message || 'No se pudo crear el pago.';
@@ -801,13 +885,9 @@ function App() {
       <div className="screen-content">
         <div className="home-top-row">
           <div className="logo-chip">TR</div>
-          <div className="home-toggle">
-            <button type="button" className={homeTab === 'muro' ? 'active' : ''} onClick={() => setHomeTab('muro')}>
-              Muro
-            </button>
-            <button type="button" className={homeTab === 'feed' ? 'active' : ''} onClick={() => setHomeTab('feed')}>
-              Feed
-            </button>
+          <div className="home-title">
+            <strong>Muro</strong>
+            <span>Comunidad activa</span>
           </div>
           <button type="button" className="icon-btn" onClick={() => setShowNotifications(true)}>
             <Bell size={16} />
@@ -815,34 +895,91 @@ function App() {
           </button>
         </div>
 
-        {homeTab === 'muro' ? (
-          <div className="stack-list">
-            {WALL_POSTS.map((post) => (
+        <div className="stack-list">
+          {WALL_POSTS.map((post) => {
+            const state = wallState[post.id];
+            return (
               <article key={post.id} className="glass-card">
                 <div className="card-kicker">{post.author}</div>
                 <h3>{post.title}</h3>
                 <p>{post.body}</p>
-              </article>
-            ))}
-          </div>
-        ) : (
-          <div className="stack-list">
-            <article className="glass-card">
-              <div className="card-kicker">Feed</div>
-              <h3>Videos dentro de Toka Ripple</h3>
-              <p>Abre la pestaña Reto o Inicio para ver el feed completo con scroll infinito y Tokadrop.</p>
-              <button type="button" onClick={() => setScreen('reto')}>Ir a retos</button>
-            </article>
-          </div>
-        )}
 
-        <article className="glass-card focus-card">
-          <div className="card-kicker">Reto activo</div>
-          <h3>{selectedChallenge.title}</h3>
-          <p>{selectedChallenge.description}</p>
-          <div className="metric-row">
-            <span>Puntos: {walletState.points}</span>
-            <span>Racha: {walletState.streak}</span>
+                <div className="wall-actions">
+                  <button type="button" className={`react-btn ${state?.liked ? 'liked' : ''}`} onClick={() => toggleWallLike(post.id)}>
+                    <Sparkles size={14} />
+                    {state?.likes || 0}
+                  </button>
+                  <button type="button" className="react-btn" onClick={() => toggleWallComments(post.id)}>
+                    <MessageSquare size={14} />
+                    {state?.comments?.length || 0}
+                  </button>
+                </div>
+
+                {state?.showComments ? (
+                  <div className="comment-area">
+                    <div className="comment-list">
+                      {state.comments.map((comment, index) => (
+                        <p key={`${post.id}-c-${index}`} className="comment-item">{comment}</p>
+                      ))}
+                    </div>
+                    <div className="comment-form">
+                      <input
+                        value={state.draft}
+                        onChange={(event) => updateWallCommentDraft(post.id, event.target.value)}
+                        placeholder="Escribe un comentario"
+                      />
+                      <button type="button" onClick={() => submitWallComment(post.id)}>Enviar</button>
+                    </div>
+                  </div>
+                ) : null}
+              </article>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
+  function renderFeedScreen() {
+    return (
+      <div className="screen-content">
+        <div className="section-title-row">
+          <h2>Feed</h2>
+          <span>Videos y Tokadrop</span>
+        </div>
+
+        <article className="glass-card">
+          <div className="card-kicker">Feed infinito con YouTube iframe</div>
+          <div className="infinite-feed" onScroll={handleFeedScroll}>
+            {feedItems.map((item) => (
+              <div key={item.id} className="video-card">
+                <div className="video-header">
+                  <div>
+                    <strong>{item.author.name}</strong>
+                    <span>{item.title}</span>
+                  </div>
+                  <button type="button" className="tokadrop-btn" onClick={() => openTokadrop(item.author)}>
+                    Tokadrop
+                  </button>
+                </div>
+                <div className="video-frame-wrap">
+                  <iframe
+                    title={item.id}
+                    src={`https://www.youtube.com/embed/${item.videoId}`}
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    referrerPolicy="strict-origin-when-cross-origin"
+                    allowFullScreen
+                  />
+                </div>
+                <div className="video-meta">
+                  <span>{item.likes} likes</span>
+                  <span>{item.comments} comentarios</span>
+                </div>
+              </div>
+            ))}
+            <p className="feed-end">
+              {hasMoreFeed ? 'Desliza para cargar mas contenido' : 'No hay mas contenido por ahora'}
+            </p>
           </div>
         </article>
       </div>
@@ -853,9 +990,35 @@ function App() {
     return (
       <div className="screen-content">
         <div className="section-title-row">
-          <h2>Retos</h2>
-          <span>Semana activa</span>
+          <h2>Reto</h2>
+          <span>Semana 3</span>
         </div>
+
+        <article className="glass-card reto-hero">
+          <div className="reto-logo">TR</div>
+          <h3>{selectedChallenge.title}</h3>
+          <p>{selectedChallenge.description}</p>
+          <div className="metric-row">
+            <span>{selectedChallenge.participants} participantes</span>
+            <span>{selectedChallenge.rewardPoints} puntos</span>
+          </div>
+          <div className="reto-actions">
+            <button type="button" onClick={acceptChallenge}>
+              {selectedChallenge.id === 'ch-2' ? 'Iniciar trivia' : 'Participar en reto'}
+            </button>
+            <button
+              type="button"
+              className="soft-btn"
+              onClick={() => {
+                const currentIndex = DAILY_CHALLENGES.findIndex((item) => item.id === selectedChallenge.id);
+                const next = DAILY_CHALLENGES[(currentIndex + 1) % DAILY_CHALLENGES.length];
+                setWalletState((current) => ({ ...current, selectedChallengeId: next.id }));
+              }}
+            >
+              Cambiar reto
+            </button>
+          </div>
+        </article>
 
         <div className="stack-list">
           {DAILY_CHALLENGES.map((challenge) => {
@@ -870,20 +1033,6 @@ function App() {
                   <span className={isDone ? 'state-done' : 'state-pending'}>
                     {isDone ? 'Completado' : 'Pendiente'}
                   </span>
-                </div>
-                <div className="action-inline">
-                  <button
-                    type="button"
-                    className="soft-btn"
-                    onClick={() => setWalletState((current) => ({ ...current, selectedChallengeId: challenge.id }))}
-                  >
-                    Seleccionar
-                  </button>
-                  {isActive ? (
-                    <button type="button" onClick={acceptChallenge}>
-                      {challenge.id === 'ch-2' ? 'Iniciar trivia' : 'Aceptar reto'}
-                    </button>
-                  ) : null}
                 </div>
               </article>
             );
@@ -940,39 +1089,6 @@ function App() {
             )}
           </article>
         ) : null}
-
-        <article className="glass-card">
-          <div className="card-kicker">Feed infinito con YouTube iframe</div>
-          <div className="infinite-feed" onScroll={handleFeedScroll}>
-            {feedItems.map((item) => (
-              <div key={item.id} className="video-card">
-                <div className="video-header">
-                  <div>
-                    <strong>{item.author.name}</strong>
-                    <span>{item.title}</span>
-                  </div>
-                  <button type="button" className="tokadrop-btn" onClick={() => openTokadrop(item.author)}>
-                    Tokadrop
-                  </button>
-                </div>
-                <div className="video-frame-wrap">
-                  <iframe
-                    title={item.id}
-                    src={`https://www.youtube.com/embed/${item.videoId}`}
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                    referrerPolicy="strict-origin-when-cross-origin"
-                    allowFullScreen
-                  />
-                </div>
-                <div className="video-meta">
-                  <span>{item.likes} likes</span>
-                  <span>{item.comments} comentarios</span>
-                </div>
-              </div>
-            ))}
-            <p className="feed-end">{hasMoreFeed ? 'Desliza para cargar mas contenido' : 'No hay mas contenido por ahora'}</p>
-          </div>
-        </article>
       </div>
     );
   }
@@ -1214,7 +1330,9 @@ function App() {
             </label>
           </div>
 
-          <button type="button" onClick={() => pushActivity('Ajustes guardados', 'Configuracion actualizada.')}>Guardar ajustes</button>
+          <button type="button" onClick={() => pushActivity('Ajustes guardados', 'Configuracion actualizada.')}>
+            Guardar ajustes
+          </button>
         </article>
       </div>
     );
@@ -1278,6 +1396,7 @@ function App() {
 
       <section className="screen-wrap">
         {screen === 'home' ? renderHomeScreen() : null}
+        {screen === 'feed' ? renderFeedScreen() : null}
         {screen === 'reto' ? renderRetoScreen() : null}
         {screen === 'ranking' ? renderRankingScreen() : null}
         {screen === 'wallet' ? renderWalletScreen() : null}
@@ -1312,8 +1431,13 @@ function App() {
         {NAV_ITEMS.map((item) => {
           const Icon = item.icon;
           return (
-            <button key={item.id} type="button" className={screen === item.id ? 'active' : ''} onClick={() => setScreen(item.id)}>
-              <Icon size={18} />
+            <button
+              key={item.id}
+              type="button"
+              className={screen === item.id ? 'active' : ''}
+              onClick={() => setScreen(item.id)}
+            >
+              <Icon size={17} />
               <span>{item.label}</span>
             </button>
           );
