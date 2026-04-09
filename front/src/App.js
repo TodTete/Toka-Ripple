@@ -5,9 +5,8 @@ import {
   closePayment,
   createPayment,
   getBackendConfig,
+  getUserInfo,
   inquiryPayment,
-  inquiryRefund,
-  refundPayment,
 } from './services/tokaApi';
 import {
   extractAuthCodeFromBridgeResponse,
@@ -150,9 +149,8 @@ function App() {
     merchantCode: '',
     orderTitle: 'Entrada Toka Ripple',
     orderAmount: '500',
-    currency: 'MXN',
+    currency: 'USD',
     paymentId: '',
-    refundId: '',
   });
   const [walletState, setWalletState] = useState({
     points: 0,
@@ -184,7 +182,15 @@ function App() {
     }
 
     getBackendConfig()
-      .then((config) => setBackendConfig(config.data))
+      .then((config) => {
+        setBackendConfig(config.data);
+        if (config?.data?.merchantCodePrefix) {
+          setPaymentForm((current) => ({
+            ...current,
+            merchantCode: config.data.merchantCodePrefix,
+          }));
+        }
+      })
       .catch(() => {
         setMessage({
           title: 'Backend no disponible',
@@ -284,6 +290,17 @@ function App() {
       setAuthCode(code);
       setAccessToken(token);
       setUserId(nextUserId);
+
+      try {
+        const userInfoResult = await getUserInfo(token, [code]);
+        setUserInfo(userInfoResult?.data || null);
+      } catch (userInfoError) {
+        pushActivity(
+          'Perfil pendiente',
+          userInfoError?.payload?.message || userInfoError?.message || 'No se pudo sincronizar perfil por ahora.'
+        );
+      }
+
       setDigitalIdentityAuthorized(true);
       setModalOpen(false);
       pushActivity('Sesión iniciada', 'Te has autenticado correctamente con tu cuenta Alipay.');
@@ -429,40 +446,6 @@ function App() {
       pushActivity('Pago cerrado', result?.message || 'El pago se cerro correctamente.');
     } catch (error) {
       pushActivity('Cierre fallido', error?.payload?.message || error.message || 'No se pudo cerrar el pago.');
-    } finally {
-      setLoadingAction('');
-    }
-  }
-
-  async function handleRefund() {
-    setLoadingAction('refund');
-    try {
-      const result = await refundPayment({
-        accessToken,
-        userId,
-        paymentId: paymentForm.paymentId,
-        merchantCode: paymentForm.merchantCode,
-        refundAmount: {
-          value: paymentForm.orderAmount,
-          currency: paymentForm.currency,
-        },
-      });
-      setPaymentForm((current) => ({ ...current, refundId: result?.data?.refundId || '' }));
-      pushActivity('Reembolso solicitado', 'Se genero el reembolso de prueba.');
-    } catch (error) {
-      pushActivity('Reembolso fallido', error?.payload?.message || error.message || 'No se pudo solicitar el reembolso.');
-    } finally {
-      setLoadingAction('');
-    }
-  }
-
-  async function handleInquiryRefund() {
-    setLoadingAction('inquiry-refund');
-    try {
-      const result = await inquiryRefund(accessToken, paymentForm.refundId);
-      pushActivity('Reembolso consultado', result?.message || 'Consulta completada.');
-    } catch (error) {
-      pushActivity('Consulta de reembolso fallida', error?.payload?.message || error.message || 'No se pudo consultar el reembolso.');
     } finally {
       setLoadingAction('');
     }
@@ -652,10 +635,6 @@ function App() {
                 <strong>{paymentForm.paymentId ? '1' : '0'}</strong>
                 <span>Pagos</span>
               </div>
-              <div>
-                <strong>{paymentForm.refundId ? '1' : '0'}</strong>
-                <span>Reembolsos</span>
-              </div>
             </div>
 
             <div className="form-grid">
@@ -663,8 +642,8 @@ function App() {
                 Merchant Code
                 <input 
                   value={paymentForm.merchantCode} 
-                  onChange={(event) => setPaymentForm((current) => ({ ...current, merchantCode: event.target.value }))} 
-                  placeholder="ABCDE" 
+                  readOnly
+                  placeholder="30100" 
                   maxLength={5} 
                 />
               </label>
@@ -689,7 +668,7 @@ function App() {
                 Moneda
                 <input 
                   value={paymentForm.currency} 
-                  onChange={(event) => setPaymentForm((current) => ({ ...current, currency: event.target.value }))} 
+                  readOnly
                 />
               </label>
             </div>
@@ -704,12 +683,6 @@ function App() {
               <button type="button" className="secondary" onClick={handleClosePayment} disabled={loadingAction === 'close-payment'}>
                 Cerrar pago
               </button>
-              <button type="button" className="secondary" onClick={handleRefund} disabled={loadingAction === 'refund'}>
-                Reembolsar
-              </button>
-              <button type="button" className="secondary" onClick={handleInquiryRefund} disabled={loadingAction === 'inquiry-refund'}>
-                Consultar reembolso
-              </button>
             </div>
           </article>
 
@@ -719,8 +692,8 @@ function App() {
             <p>Información verificada y segura desde Toka.</p>
 
             <div className="identity-box">
-              <strong>{userInfo?.fullName || userInfo?.nickName || 'Nombre de usuario'}</strong>
-              <span>{userInfo?.email || userInfo?.mobilePhone || 'email@example.com'}</span>
+              <strong>{userInfo?.fullName || userInfo?.nickName || 'Perfil no sincronizado'}</strong>
+              <span>{userInfo?.email || userInfo?.mobilePhone || 'Sin email/teléfono disponible'}</span>
               <pre style={{marginTop: '1rem', fontSize: '0.85rem', maxHeight: '200px', overflow: 'auto'}}>
                 {JSON.stringify(userInfo || {}, null, 2)}
               </pre>

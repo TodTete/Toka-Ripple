@@ -36,6 +36,16 @@ function getConfig() {
   };
 }
 
+function normalizeMerchantCode(rawMerchantCode) {
+  const candidate = String(rawMerchantCode || '').trim();
+  if (!candidate) {
+    return '';
+  }
+
+  // Toka API expects Alipay-MerchantCode with exactly 5 characters (merchant prefix).
+  return candidate.slice(0, 5);
+}
+
 function buildHeaders({ accessToken, merchantCode } = {}) {
   const { appId, merchantCode: defaultMerchantCode } = getConfig();
   const headers = {
@@ -47,8 +57,9 @@ function buildHeaders({ accessToken, merchantCode } = {}) {
     headers.Authorization = `Bearer ${accessToken}`;
   }
 
-  if (merchantCode || defaultMerchantCode) {
-    headers['Alipay-MerchantCode'] = merchantCode || defaultMerchantCode;
+  const normalizedMerchantCode = normalizeMerchantCode(merchantCode || defaultMerchantCode);
+  if (normalizedMerchantCode) {
+    headers['Alipay-MerchantCode'] = normalizedMerchantCode;
   }
 
   return headers;

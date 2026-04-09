@@ -78,6 +78,7 @@ app.get('/health', (_req, res) => {
 
 app.get('/api/config', (_req, res) => {
   const config = getConfig();
+  const merchantCodePrefix = String(config.merchantCode || '').trim().slice(0, 5);
   res.json({
     success: config.validation.isValid,
     statusCode: config.validation.isValid ? 200 : 500,
@@ -87,6 +88,7 @@ app.get('/api/config', (_req, res) => {
     data: {
       appId: config.appId,
       hasMerchantCode: Boolean(config.merchantCode),
+      merchantCodePrefix,
       tokaApiBaseUrl: config.baseUrl,
       errors: config.validation.errors,
     },
