@@ -37,7 +37,7 @@ function validateJsapiMeta(jsapiMeta) {
     return { valid: true };
   }
 
-  if (!/success|s|20000000|ok/i.test(resultCode)) {
+  if (!/success|ok|s|0|10000|20000000/i.test(resultCode)) {
     return {
       valid: false,
       message: `JSAPI exchange rejected. resultCode=${resultCode} resultMsg=${jsapiMeta.resultMsg || ''}`,
