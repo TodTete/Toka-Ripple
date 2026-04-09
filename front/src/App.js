@@ -406,7 +406,7 @@ function App() {
   const [wallState, setWallState] = useState(() => WALL_POSTS.reduce((acc, post) => ({ ...acc, [post.id]: { liked: false, likes: post.likes, comments: [...post.comments], draft: '', showComments: false } }), {}));
   const [feedItems, setFeedItems] = useState(() => Array.from({ length: 18 }, (_, index) => createFeedItem(index)));
   const [pendingTokadropUser, setPendingTokadropUser] = useState(null);
-  const [settingsState, setSettingsState] = useState({ notificationsEnabled: true, privateProfile: false, compactMode: false, profileName: '', profileEmail: '', profilePhone: '', logoMode: 'lite' });
+  const [settingsState, setSettingsState] = useState({ notificationsEnabled: true, privateProfile: false, compactMode: false, profileName: '', profileEmail: '', profilePhone: '', themeMode: 'lite' });
   const [triviaState, setTriviaState] = useState({ active: false, pool: shuffle(TRIVIA_QUESTIONS.map((item) => item.id)), roundQuestions: [], questionIndex: 0, selectedOption: null, roundScore: 0, roundsCompleted: 0 });
   const [digitalIdentityAuthorized, setDigitalIdentityAuthorized] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
@@ -458,6 +458,13 @@ function App() {
       JSON.stringify({ accessToken, tokenType, userId, authCode, userInfo, contactInfo, paymentForm, walletState, settingsState })
     );
   }, [accessToken, tokenType, userId, authCode, userInfo, contactInfo, paymentForm, walletState, settingsState]);
+
+  useEffect(() => {
+    document.body.classList.toggle('theme-dark', settingsState.themeMode === 'dark');
+    return () => {
+      document.body.classList.remove('theme-dark');
+    };
+  }, [settingsState.themeMode]);
 
   useEffect(() => {
     setNotifications((current) => {
@@ -591,14 +598,14 @@ function App() {
     }
     const selectedPreset = CHALLENGE_GALLERY_PRESETS.find((item) => item.id === selectedGalleryPresetId);
     setWalletState((current) => ({ ...current, points: current.points + selectedChallenge.rewardPoints, streak: current.streak + 1, completedChallengeIds: [...current.completedChallengeIds, selectedChallenge.id] }));
-    pushActivity('Reto completado', `Simulacion de galeria: ${selectedPreset?.title || 'imagen seleccionada'}. Ganaste ${selectedChallenge.rewardPoints} puntos.`);
+    pushActivity('Reto completado', `Galeria elegida: ${selectedPreset?.title || 'imagen seleccionada'}. Ganaste ${selectedChallenge.rewardPoints} puntos.`);
     triggerConfetti(selectedChallenge.title);
     setShowChallengeGallery(false);
   }
 
   function cancelChallengeGallery() {
     setShowChallengeGallery(false);
-    pushActivity('Galeria cerrada', 'No se subio ni descargo ningun archivo. Solo simulacion.');
+    pushActivity('Galeria cerrada', 'No se subio ni descargo ningun archivo.');
   }
 
   function renderChallengeGalleryOverlay() {
@@ -607,11 +614,11 @@ function App() {
     }
     return (
       <div className="overlay" role="presentation">
-        <section className="overlay-card challenge-gallery" role="dialog" aria-modal="true" aria-label="Galeria simulada">
+        <section className="overlay-card challenge-gallery" role="dialog" aria-modal="true" aria-label="Galeria de reto">
           <div className="overlay-head">
             <div>
-              <h3>Galeria simulada</h3>
-              <span>Sin subir ni bajar nada. Solo una simulacion visual.</span>
+              <h3>Galeria de reto</h3>
+              <span>Selecciona una imagen para continuar.</span>
             </div>
             <button type="button" className="icon-btn" onClick={cancelChallengeGallery}>
               <X size={16} />
@@ -1043,7 +1050,7 @@ function App() {
           <span>Semana 3</span>
         </div>
         <article className="glass-card reto-hero floating-card">
-          <div className={`reto-logo ${settingsState.logoMode === 'dark' ? 'logo-dark' : 'logo-lite'}`}><img src={APP_LOGO_URL} alt="Logo Toka Ripple" /></div>
+          <div className="reto-logo"><img src={APP_LOGO_URL} alt="Logo Toka Ripple" /></div>
           <h3>{selectedChallenge.title}</h3>
           <p>{selectedChallenge.description}</p>
           <div className="metric-row">
@@ -1213,7 +1220,7 @@ function App() {
         </div>
         <article className="glass-card floating-card">
           <div className="profile-head">
-            <div className={`avatar ${settingsState.logoMode === 'dark' ? 'logo-dark' : 'logo-lite'}`}><img src={APP_LOGO_URL} alt="Logo Toka Ripple" /></div>
+            <div className="avatar"><img src={APP_LOGO_URL} alt="Logo Toka Ripple" /></div>
             <div>
               <strong>{profileDisplay.name}</strong>
               <p>{walletState.streak} dias de racha</p>
@@ -1264,13 +1271,13 @@ function App() {
           <div className="form-grid">
             <label>Nombre<input value={settingsState.profileName} placeholder="Agregar nombre" onChange={(event) => setSettingsState((current) => ({ ...current, profileName: event.target.value }))} /></label>
           </div>
-          <div className="logo-mode-panel">
-            <span>Logo</span>
-            <div className="logo-mode-buttons">
-              <button type="button" className={`logo-mode-btn ${settingsState.logoMode === 'lite' ? 'active' : ''}`} onClick={() => setSettingsState((current) => ({ ...current, logoMode: 'lite' }))}>
+          <div className="theme-mode-panel">
+            <span>Tema</span>
+            <div className="theme-mode-buttons">
+              <button type="button" className={`theme-mode-btn ${settingsState.themeMode === 'lite' ? 'active' : ''}`} onClick={() => setSettingsState((current) => ({ ...current, themeMode: 'lite' }))}>
                 <Sun size={14} /> Lite
               </button>
-              <button type="button" className={`logo-mode-btn ${settingsState.logoMode === 'dark' ? 'active' : ''}`} onClick={() => setSettingsState((current) => ({ ...current, logoMode: 'dark' }))}>
+              <button type="button" className={`theme-mode-btn ${settingsState.themeMode === 'dark' ? 'active' : ''}`} onClick={() => setSettingsState((current) => ({ ...current, themeMode: 'dark' }))}>
                 <Moon size={14} /> Obscuro
               </button>
             </div>
@@ -1312,7 +1319,7 @@ function App() {
   }
 
   return (
-    <main className={`app-shell ${settingsState.compactMode ? 'compact' : ''}`}>
+    <main className={`app-shell ${settingsState.compactMode ? 'compact' : ''} ${settingsState.themeMode === 'dark' ? 'theme-dark' : 'theme-light'}`}>
       {confettiBurst ? (
         <div className="confetti-layer" aria-hidden="true">
           <div className="confetti-banner">
@@ -1334,7 +1341,7 @@ function App() {
       </div>
 
       <header className="header">
-        <div className={`logo-chip ${settingsState.logoMode === 'dark' ? 'logo-dark' : 'logo-lite'}`}><img src={APP_LOGO_URL} alt="Logo Toka Ripple" /></div>
+        <div className="logo-chip"><img src={APP_LOGO_URL} alt="Logo Toka Ripple" /></div>
         <div>
           <h1>Toka Ripple</h1>
           <p>Wallet social sin friccion</p>

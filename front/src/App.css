@@ -49,6 +49,60 @@ input {
   font-size: 0.92rem;
 }
 
+.app-shell.theme-dark {
+  --bg: #0a101d;
+  --bg2: #111a2f;
+  --card: #141f36;
+  --card-2: #192746;
+  --border: rgba(133, 168, 245, 0.22);
+  --text: #eef4ff;
+  --text-dim: #afc0df;
+  --accent: #ffae64;
+  --accent-2: #37d7c7;
+  background: linear-gradient(180deg, #0b1221, #0a1326);
+}
+
+body.theme-dark {
+  background: radial-gradient(circle at 10% 12%, #1b2a49 0%, #111c34 45%, #0a1120 100%);
+  color: #eef4ff;
+}
+
+.app-shell.theme-dark .bottom-nav {
+  background: rgba(8, 13, 24, 0.94);
+}
+
+.app-shell.theme-dark .bottom-nav button.active {
+  background: linear-gradient(145deg, rgba(255, 174, 100, 0.38), rgba(55, 215, 199, 0.26));
+  color: #f6fbff;
+}
+
+.app-shell.theme-dark .overlay {
+  background: rgba(0, 0, 0, 0.66);
+}
+
+.app-shell.theme-dark .overlay-card,
+.app-shell.theme-dark .startup-card,
+.app-shell.theme-dark .report-reason-btn,
+.app-shell.theme-dark .gallery-item span {
+  color: var(--text);
+}
+
+.app-shell.theme-dark .overlay-card {
+  background: linear-gradient(160deg, #131d34, #0e172c);
+}
+
+.app-shell.theme-dark .soft-btn,
+.app-shell.theme-dark .theme-mode-btn {
+  background: linear-gradient(140deg, #1c2a49, #13213e);
+  color: #cfe1ff;
+  border-color: rgba(123, 164, 255, 0.34);
+}
+
+.app-shell.theme-dark .theme-mode-btn.active {
+  background: linear-gradient(140deg, rgba(255, 174, 100, 0.24), rgba(55, 215, 199, 0.2));
+  color: #f0f6ff;
+}
+
 .status-bar {
   height: 42px;
   padding: 0 16px;
@@ -694,33 +748,25 @@ input {
   object-fit: cover;
 }
 
-.logo-dark img {
-  filter: brightness(0.38) contrast(1.25) saturate(0.7);
-}
-
-.logo-lite img {
-  filter: none;
-}
-
-.logo-mode-panel {
+.theme-mode-panel {
   margin-top: 10px;
   display: grid;
   gap: 8px;
 }
 
-.logo-mode-panel > span {
+.theme-mode-panel > span {
   color: var(--text-dim);
   font-size: 0.78rem;
   font-weight: 700;
 }
 
-.logo-mode-buttons {
+.theme-mode-buttons {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 8px;
 }
 
-.logo-mode-btn {
+.theme-mode-btn {
   border: 1px solid rgba(56, 121, 255, 0.3);
   background: #f4f8ff;
   color: #355ea6;
@@ -734,7 +780,7 @@ input {
   cursor: pointer;
 }
 
-.logo-mode-btn.active {
+.theme-mode-btn.active {
   background: linear-gradient(140deg, #ffe0c2, #d7fff8);
   border-color: rgba(255, 138, 61, 0.45);
   color: #234083;
