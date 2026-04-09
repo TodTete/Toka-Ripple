@@ -1,15 +1,15 @@
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Sora:wght@600;700;800&display=swap');
 
 :root {
-  --bg: #080810;
-  --bg2: #111122;
-  --card: #17172b;
-  --card-2: #1f1f35;
-  --border: rgba(255, 255, 255, 0.1);
-  --text: #f6f4ff;
-  --text-dim: #b9b6ce;
-  --accent: #f5a623;
-  --accent-2: #00c9b1;
+  --bg: #edf3ff;
+  --bg2: #f7fbff;
+  --card: #ffffff;
+  --card-2: #f4f8ff;
+  --border: rgba(46, 93, 191, 0.16);
+  --text: #182647;
+  --text-dim: #5f6d89;
+  --accent: #ff8a3d;
+  --accent-2: #20c7b5;
   --danger: #f04e5e;
   --ok: #44cf6c;
 }
@@ -23,7 +23,7 @@ body,
 #root {
   margin: 0;
   min-height: 100%;
-  background: radial-gradient(circle at 20% 10%, #23203d 0%, #090913 65%);
+  background: radial-gradient(circle at 10% 12%, #d9ecff 0%, #eef8ff 45%, #e9f1ff 100%);
   color: var(--text);
   font-family: 'DM Sans', sans-serif;
 }
@@ -37,7 +37,7 @@ input {
   width: min(430px, 100%);
   min-height: 100dvh;
   margin: 0 auto;
-  background: linear-gradient(180deg, #0a0a13, #07070f);
+  background: linear-gradient(180deg, #f9fcff, #eef5ff);
   border-left: 1px solid var(--border);
   border-right: 1px solid var(--border);
   display: grid;
@@ -78,10 +78,16 @@ input {
   border-radius: 12px;
   display: grid;
   place-items: center;
-  background: linear-gradient(140deg, var(--accent), var(--accent-2));
-  color: #111;
-  font-family: 'Sora', sans-serif;
-  font-weight: 800;
+  background: #fff;
+  border: 1px solid rgba(55, 116, 255, 0.2);
+  overflow: hidden;
+  box-shadow: 0 8px 20px rgba(33, 71, 153, 0.14);
+}
+
+.logo-chip img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .header h1 {
@@ -230,10 +236,11 @@ input {
 }
 
 .glass-card {
-  background: linear-gradient(145deg, rgba(255, 255, 255, 0.06), var(--card));
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.94), var(--card));
   border: 1px solid var(--border);
   border-radius: 16px;
   padding: 12px;
+  box-shadow: 0 10px 24px rgba(46, 93, 191, 0.08);
 }
 
 .glass-card.read {
@@ -260,7 +267,7 @@ input {
   font-size: 0.72rem;
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  color: #ffd789;
+  color: #ff8f4c;
   font-family: 'Sora', sans-serif;
 }
 
@@ -286,12 +293,17 @@ input {
   display: grid;
   place-items: center;
   margin: 2px auto 0;
-  font-family: 'Sora', sans-serif;
-  font-size: 1.15rem;
-  font-weight: 800;
-  color: #121224;
-  background: linear-gradient(145deg, var(--accent), var(--accent-2));
+  background: #fff;
+  border: 1px solid rgba(55, 116, 255, 0.2);
+  overflow: hidden;
+  box-shadow: 0 8px 22px rgba(33, 71, 153, 0.18);
   animation: retoPulse 2.5s ease-in-out infinite;
+}
+
+.reto-logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .reto-actions {
@@ -396,18 +408,19 @@ input {
 .permission-box button,
 .gate-card > button {
   border: 0;
-  background: linear-gradient(140deg, var(--accent), #ff7a00);
-  color: #1b1323;
+  background: linear-gradient(140deg, #ff9f5e, #ffd166);
+  color: #2f1a0d;
   border-radius: 11px;
   padding: 9px 12px;
   font-weight: 700;
   cursor: pointer;
+  box-shadow: 0 8px 18px rgba(255, 146, 52, 0.26);
 }
 
 .soft-btn {
-  background: rgba(255, 255, 255, 0.08);
-  color: var(--text);
-  border: 1px solid var(--border);
+  background: linear-gradient(140deg, #ecf9ff, #e6f1ff);
+  color: #2554a8;
+  border: 1px solid rgba(56, 121, 255, 0.3);
 }
 
 .option-btn {
@@ -469,7 +482,7 @@ input {
 
 .tokadrop-btn {
   background: linear-gradient(140deg, #00c9b1, #4a90e2);
-  color: #081118;
+  color: #f8feff;
 }
 
 .video-frame-wrap {
@@ -512,9 +525,9 @@ input {
 }
 
 .feed-icon-btn {
-  border: 1px solid var(--border);
-  background: rgba(255, 255, 255, 0.05);
-  color: var(--text);
+  border: 1px solid rgba(56, 121, 255, 0.28);
+  background: #f5f9ff;
+  color: #2a4f95;
   border-radius: 12px;
   min-height: 62px;
   padding: 8px 6px;
@@ -527,6 +540,30 @@ input {
 .feed-icon-btn span {
   font-size: 0.69rem;
   line-height: 1.1;
+}
+
+.feed-icon-btn:nth-child(1) {
+  background: linear-gradient(140deg, #fff6df, #ffe8c6);
+  border-color: rgba(255, 159, 94, 0.4);
+  color: #9b5d13;
+}
+
+.feed-icon-btn:nth-child(2) {
+  background: linear-gradient(140deg, #e9f4ff, #dcecff);
+  border-color: rgba(95, 151, 255, 0.4);
+  color: #355ea6;
+}
+
+.feed-icon-btn:nth-child(3) {
+  background: linear-gradient(140deg, #e8fff8, #d8fff5);
+  border-color: rgba(32, 199, 181, 0.4);
+  color: #137a72;
+}
+
+.feed-icon-btn:nth-child(4) {
+  background: linear-gradient(140deg, #f2ecff, #e8dcff);
+  border-color: rgba(146, 102, 255, 0.35);
+  color: #5f38b8;
 }
 
 .podium-grid {
@@ -626,10 +663,16 @@ input {
   border-radius: 50%;
   display: grid;
   place-items: center;
-  background: linear-gradient(140deg, var(--accent), var(--accent-2));
-  color: #1d1223;
-  font-family: 'Sora', sans-serif;
-  font-weight: 800;
+  background: #fff;
+  border: 1px solid rgba(55, 116, 255, 0.22);
+  overflow: hidden;
+  box-shadow: 0 8px 20px rgba(33, 71, 153, 0.16);
+}
+
+.avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .profile-grid {
@@ -759,11 +802,12 @@ input {
   width: min(430px, calc(100% - 12px));
   border: 1px solid var(--border);
   border-radius: 16px;
-  background: rgba(7, 7, 14, 0.94);
+  background: rgba(248, 252, 255, 0.95);
   display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   padding: 6px;
   gap: 4px;
+  box-shadow: 0 14px 34px rgba(46, 93, 191, 0.12);
 }
 
 .bottom-nav button {
@@ -781,15 +825,15 @@ input {
 }
 
 .bottom-nav button.active {
-  background: linear-gradient(145deg, rgba(245, 166, 35, 0.3), rgba(0, 201, 177, 0.25));
-  border-color: rgba(255, 255, 255, 0.2);
-  color: #fff;
+  background: linear-gradient(145deg, #ffca8f, #a9f4ec);
+  border-color: rgba(43, 104, 218, 0.24);
+  color: #1d3261;
 }
 
 .overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.66);
+  background: rgba(18, 39, 87, 0.42);
   display: grid;
   place-items: center;
   padding: 14px;
@@ -802,25 +846,70 @@ input {
   overflow: auto;
   border: 1px solid var(--border);
   border-radius: 16px;
-  background: linear-gradient(160deg, #15152a, #0d0d1a);
+  background: linear-gradient(160deg, #ffffff, #f2f7ff);
   padding: 12px;
   display: grid;
   gap: 8px;
 }
+
+.challenge-gallery .overlay-head span {
+  color: var(--text-dim);
+  font-size: 0.78rem;
+}
+
+.gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.gallery-item {
+  border: 1px solid rgba(57, 121, 255, 0.22);
+  border-radius: 12px;
+  min-height: 82px;
+  display: grid;
+  place-items: end start;
+  text-align: left;
+  padding: 8px;
+  color: #1d3261;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease;
+}
+
+.gallery-item span {
+  background: rgba(255, 255, 255, 0.86);
+  border-radius: 8px;
+  padding: 4px 6px;
+  font-size: 0.72rem;
+}
+
+.gallery-item.selected {
+  border-color: #2f78ff;
+  box-shadow: 0 0 0 2px rgba(47, 120, 255, 0.18);
+  transform: translateY(-1px);
+}
+
+.gallery-item.gal-a { background: linear-gradient(145deg, #ffe9cc, #fff4df); }
+.gallery-item.gal-b { background: linear-gradient(145deg, #ddf2ff, #ecf8ff); }
+.gallery-item.gal-c { background: linear-gradient(145deg, #e9ffe8, #f5fff3); }
+.gallery-item.gal-d { background: linear-gradient(145deg, #f2e8ff, #f8f1ff); }
+.gallery-item.gal-e { background: linear-gradient(145deg, #ffe7ef, #fff2f7); }
+.gallery-item.gal-f { background: linear-gradient(145deg, #fff3d8, #fff9ea); }
 
 .app-gate {
   min-height: 100dvh;
   display: grid;
   place-items: center;
   padding: 14px;
-  background: radial-gradient(circle at 10% 10%, #2a2244 0%, #0a0a12 64%);
+  background: radial-gradient(circle at 10% 10%, #d9ecff 0%, #eef8ff 64%);
 }
 
 .gate-card {
   width: min(430px, 100%);
   border: 1px solid var(--border);
   border-radius: 16px;
-  background: linear-gradient(160deg, #1a1832, #0f1020);
+  background: linear-gradient(160deg, #ffffff, #f1f7ff);
   padding: 14px;
   display: grid;
   gap: 10px;
@@ -835,7 +924,7 @@ input {
 .permission-box {
   border: 1px solid var(--border);
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(47, 120, 255, 0.06);
   padding: 10px;
   display: grid;
   gap: 8px;

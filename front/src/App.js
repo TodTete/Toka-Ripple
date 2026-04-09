@@ -30,6 +30,7 @@ import {
 } from './lib/alipayBridge';
 
 const SESSION_KEY = 'toka-ripple-session';
+const APP_LOGO_URL = 'https://539fb7d8b3b6743ad4198d9f89e2dbb7.cdn.bubble.io/cdn-cgi/image/w=96,h=96,f=auto,dpr=1.5,fit=cover,q=100/f1775614422719x153795892112003940/Captura%20de%20pantalla%202026-04-07%20201330.png';
 
 const USERS = [
   { id: 'u-1', name: 'Ana Sofia', rank: 1, streak: 24, points: 5200 },
@@ -185,6 +186,15 @@ const NAV_ITEMS = [
 const HOME_TABS = [
   { id: 'wall', label: 'Muro' },
   { id: 'feed', label: 'Feed' },
+];
+
+const CHALLENGE_GALLERY_PRESETS = [
+  { id: 'g-sim-1', title: 'Ruta saludable', tone: 'gal-a' },
+  { id: 'g-sim-2', title: 'Entrenamiento express', tone: 'gal-b' },
+  { id: 'g-sim-3', title: 'Momentos de gratitud', tone: 'gal-c' },
+  { id: 'g-sim-4', title: 'Comunidad activa', tone: 'gal-d' },
+  { id: 'g-sim-5', title: 'Meta cumplida', tone: 'gal-e' },
+  { id: 'g-sim-6', title: 'Energia del dia', tone: 'gal-f' },
 ];
 
 function safeParse(value, fallback) {
@@ -345,6 +355,8 @@ function App() {
   const [permissionsError, setPermissionsError] = useState('');
   const [bridgeDiagnostics, setBridgeDiagnostics] = useState('');
   const [confettiBurst, setConfettiBurst] = useState(null);
+  const [showChallengeGallery, setShowChallengeGallery] = useState(false);
+  const [selectedGalleryPresetId, setSelectedGalleryPresetId] = useState(CHALLENGE_GALLERY_PRESETS[0].id);
   const confettiTimerRef = useRef(null);
 
   useEffect(() => {
@@ -505,13 +517,59 @@ function App() {
       }
       return;
     }
+    setShowChallengeGallery(true);
+  }
+
+  function completeChallengeFromGallery() {
     if (walletState.completedChallengeIds.includes(selectedChallenge.id)) {
       pushActivity('Reto ya completado', `${selectedChallenge.title} ya fue registrado.`);
+      setShowChallengeGallery(false);
       return;
     }
+    const selectedPreset = CHALLENGE_GALLERY_PRESETS.find((item) => item.id === selectedGalleryPresetId);
     setWalletState((current) => ({ ...current, points: current.points + selectedChallenge.rewardPoints, streak: current.streak + 1, completedChallengeIds: [...current.completedChallengeIds, selectedChallenge.id] }));
-    pushActivity('Reto completado', `Ganaste ${selectedChallenge.rewardPoints} puntos en ${selectedChallenge.title}.`);
+    pushActivity('Reto completado', `Simulacion de galeria: ${selectedPreset?.title || 'imagen seleccionada'}. Ganaste ${selectedChallenge.rewardPoints} puntos.`);
     triggerConfetti(selectedChallenge.title);
+    setShowChallengeGallery(false);
+  }
+
+  function cancelChallengeGallery() {
+    setShowChallengeGallery(false);
+    pushActivity('Galeria cerrada', 'No se subio ni descargo ningun archivo. Solo simulacion.');
+  }
+
+  function renderChallengeGalleryOverlay() {
+    if (!showChallengeGallery) {
+      return null;
+    }
+    return (
+      <div className="overlay" role="presentation">
+        <section className="overlay-card challenge-gallery" role="dialog" aria-modal="true" aria-label="Galeria simulada">
+          <div className="overlay-head">
+            <div>
+              <h3>Galeria simulada</h3>
+              <span>Sin subir ni bajar nada. Solo una simulacion visual.</span>
+            </div>
+            <button type="button" className="icon-btn" onClick={cancelChallengeGallery}>
+              <X size={16} />
+            </button>
+          </div>
+
+          <div className="gallery-grid">
+            {CHALLENGE_GALLERY_PRESETS.map((preset) => (
+              <button key={preset.id} type="button" className={`gallery-item ${preset.tone} ${selectedGalleryPresetId === preset.id ? 'selected' : ''}`} onClick={() => setSelectedGalleryPresetId(preset.id)}>
+                <span>{preset.title}</span>
+              </button>
+            ))}
+          </div>
+
+          <div className="overlay-actions">
+            <button type="button" className="soft-btn" onClick={cancelChallengeGallery}>Cancelar</button>
+            <button type="button" onClick={completeChallengeFromGallery}>Usar imagen y continuar</button>
+          </div>
+        </section>
+      </div>
+    );
   }
 
   function redeemGift(gift) {
@@ -809,7 +867,7 @@ function App() {
           <span>Semana 3</span>
         </div>
         <article className="glass-card reto-hero floating-card">
-          <div className="reto-logo">TR</div>
+          <div className="reto-logo"><img src={APP_LOGO_URL} alt="Logo Toka Ripple" /></div>
           <h3>{selectedChallenge.title}</h3>
           <p>{selectedChallenge.description}</p>
           <div className="metric-row">
@@ -979,7 +1037,7 @@ function App() {
         </div>
         <article className="glass-card floating-card">
           <div className="profile-head">
-            <div className="avatar">TR</div>
+            <div className="avatar"><img src={APP_LOGO_URL} alt="Logo Toka Ripple" /></div>
             <div>
               <strong>{profileDisplay.name}</strong>
               <p>{walletState.streak} dias de racha</p>
@@ -1089,7 +1147,7 @@ function App() {
       </div>
 
       <header className="header">
-        <div className="logo-chip">TR</div>
+        <div className="logo-chip"><img src={APP_LOGO_URL} alt="Logo Toka Ripple" /></div>
         <div>
           <h1>Toka Ripple</h1>
           <p>Wallet social sin friccion</p>
@@ -1129,6 +1187,8 @@ function App() {
           );
         })}
       </nav>
+
+      {renderChallengeGalleryOverlay()}
 
       {showNotifications ? (
         <div className="overlay" role="presentation">
