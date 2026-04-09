@@ -28,6 +28,31 @@ function parseMaybeJson(value) {
   }
 }
 
+function parseQueryStringMaybe(value) {
+  if (!value || typeof value !== 'string') {
+    return null;
+  }
+
+  if (!value.includes('=') || value.trim().startsWith('{')) {
+    return null;
+  }
+
+  const result = {};
+  const pairs = value.split('&');
+  for (const pair of pairs) {
+    const [rawKey, rawValue] = pair.split('=');
+    if (!rawKey) {
+      continue;
+    }
+
+    const key = decodeURIComponent(rawKey);
+    const val = decodeURIComponent(rawValue || '');
+    result[key] = val;
+  }
+
+  return Object.keys(result).length ? result : null;
+}
+
 function findAuthCodeDeep(value, depth = 0) {
   if (!value || depth > 5) {
     return '';
@@ -73,6 +98,8 @@ function findAuthCodeDeep(value, depth = 0) {
 export function extractAuthCodeFromBridgeResponse(response) {
   const parsedResult = parseMaybeJson(response?.result);
   const parsedData = parseMaybeJson(response?.data);
+  const queryResult = parseQueryStringMaybe(response?.result);
+  const queryData = parseQueryStringMaybe(response?.data);
 
   return (
     response?.authCode ||
@@ -90,6 +117,10 @@ export function extractAuthCodeFromBridgeResponse(response) {
     parsedResult?.data?.authcode ||
     parsedData?.authCode ||
     parsedData?.authcode ||
+    queryResult?.authCode ||
+    queryResult?.authcode ||
+    queryData?.authCode ||
+    queryData?.authcode ||
     findAuthCodeDeep(response) ||
     ''
   );
@@ -176,7 +207,7 @@ function callBridgeByMethodOn(bridgeName, bridge, method, params, timeoutMs = 15
     }, timeoutMs);
 
     if (typeof bridge.call === 'function') {
-      bridge.call(method, params, (response) => {
+      const onResponse = (response) => {
         if (hasBridgeError(response)) {
           finish(reject, normalizeBridgeError(method, response));
           return;
@@ -195,12 +226,27 @@ function callBridgeByMethodOn(bridgeName, bridge, method, params, timeoutMs = 15
         }
 
         finish(resolve, response);
-      });
+      };
+
+      const maybePromise = bridge.call(method, params, onResponse);
+
+      if (maybePromise && typeof maybePromise.then === 'function') {
+        maybePromise
+          .then((response) => onResponse(response || {}))
+          .catch((error) => {
+            if (error && error.errorMessage) {
+              finish(reject, normalizeBridgeError(method, error));
+              return;
+            }
+
+            finish(reject, new Error(`Bridge ${bridgeName} method ${method} promise rejected.`));
+          });
+      }
       return;
     }
 
     if (typeof bridge[method] === 'function') {
-      bridge[method](
+      const invokeParams =
         Object.assign({}, params, {
           success: (response) => {
             if (/AuthCode$/i.test(method) && !extractAuthCodeFromBridgeResponse(response)) {
@@ -218,8 +264,34 @@ function callBridgeByMethodOn(bridgeName, bridge, method, params, timeoutMs = 15
             finish(resolve, response);
           },
           fail: (response) => finish(reject, normalizeBridgeError(method, response)),
-        })
-      );
+        });
+
+      const maybePromise = bridge[method](invokeParams);
+
+      if (maybePromise && typeof maybePromise.then === 'function') {
+        maybePromise
+          .then((response) => {
+            if (/AuthCode$/i.test(method) && !extractAuthCodeFromBridgeResponse(response || {})) {
+              const missingCodeError = new Error(
+                `Bridge ${bridgeName} method ${method} returned success but no authCode in payload.`
+              );
+              missingCodeError.response = response || null;
+              finish(reject, missingCodeError);
+              return;
+            }
+
+            finish(resolve, response || {});
+          })
+          .catch((error) => {
+            if (error && error.errorMessage) {
+              finish(reject, normalizeBridgeError(method, error));
+              return;
+            }
+
+            finish(reject, new Error(`Bridge ${bridgeName} method ${method} promise rejected.`));
+          });
+      }
+
       return;
     }
 
