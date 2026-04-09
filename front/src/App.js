@@ -108,7 +108,8 @@ function isJsapiExchangeValid(exchange) {
     return true;
   }
 
-  return /success|s|20000000|ok/i.test(String(exchange.resultCode));
+  const codeStr = String(exchange.resultCode).trim();
+  return /success|ok|s|0|10000|20000000/i.test(codeStr);
 }
 
 function formatErrorDetail(error, fallbackText) {
